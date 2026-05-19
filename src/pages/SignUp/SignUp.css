@@ -1,0 +1,23 @@
+.signup-page .auth-form-panel {
+  gap: 8px;
+}
+
+.signup-page .login-copy {
+  padding-bottom: 8px;
+}
+
+.signup-page .login-title {
+  margin-bottom: 8px !important;
+}
+
+.signup-page .login-form-card {
+  padding-top: 2px;
+}
+
+.signup-page .login-input {
+  margin-bottom: 12px;
+}
+
+.signup-page .login-primary-button {
+  margin-top: 0 !important;
+}

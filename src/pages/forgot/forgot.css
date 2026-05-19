@@ -1,0 +1,23 @@
+.forgot-page .auth-form-panel {
+  gap: 8px;
+}
+
+.forgot-page .login-copy {
+  padding-bottom: 8px;
+}
+
+.forgot-page .login-title {
+  margin-bottom: 8px !important;
+}
+
+.forgot-page .login-form-card {
+  padding-top: 2px;
+}
+
+.forgot-page .login-input {
+  margin-bottom: 12px;
+}
+
+.forgot-page .login-primary-button {
+  margin-top: 0 !important;
+}

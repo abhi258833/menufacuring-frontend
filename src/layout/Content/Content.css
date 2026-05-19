@@ -1,0 +1,18 @@
+.main-content {
+  background-color: var(--clr-secondary);
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+.main-content.auth-layout {
+  min-height: 100dvh;
+}
+
+.content {
+  min-height: 83vh;
+}
+
+.content.content--auth {
+  min-height: 100dvh;
+}

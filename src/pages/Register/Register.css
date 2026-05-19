@@ -1,0 +1,23 @@
+.register-page .auth-form-panel {
+  gap: 8px;
+}
+
+.register-page .login-copy {
+  padding-bottom: 8px;
+}
+
+.register-page .login-title {
+  margin-bottom: 8px !important;
+}
+
+.register-page .login-form-card {
+  padding-top: 2px;
+}
+
+.register-page .login-input {
+  margin-bottom: 12px;
+}
+
+.register-page .login-primary-button {
+  margin-top: 0 !important;
+}

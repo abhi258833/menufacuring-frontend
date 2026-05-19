@@ -1,0 +1,213 @@
+.contact-wrapper {
+    width: 100%;
+    background: linear-gradient(to bottom, #f0f4f8, #ffffff);
+    color: #2d3748;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .contact-container {
+    max-width: 80rem;
+    margin: auto;
+    padding: 4rem 1.5rem;
+    display: grid;
+    gap: 3rem;
+  }
+  
+  /* Info & Map Box */
+  .contact-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    background-color: #ffffff;
+    padding: 60px 20px 20px 20px;
+    border-radius: 1.5rem;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+  }
+  
+  .contact-info-box:hover {
+    transform: translateY(-5px);
+  }
+  
+  @media(min-width: 1024px) {
+    .contact-info-box {
+      flex-direction: row;
+    }
+  }
+  
+  .contact-map-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  
+  .contact-map {
+    width: 100%;
+    height: 18rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  }
+  
+  @media(min-width: 1024px) {
+    .contact-map {
+      height: 100%;
+      width: 100%;
+    }
+  }
+  
+  .map-title {
+    position: absolute;
+    top: -3rem;
+    left: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e3a8a;
+  }
+  
+  .company-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+  }
+  
+  @media(min-width: 1024px) {
+    .company-info {
+      padding-left: 2rem;
+    }
+  }
+  
+  .company-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #1e40af;
+  }
+  
+  .company-address,
+  .company-contact {
+    font-size: 0.95rem;
+    color: #4b5563;
+    line-height: 1.6;
+  }
+  
+  .company-contact a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+  
+  .company-contact a:hover {
+    text-decoration: underline;
+  }
+  
+  .social-icons {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .social-icons a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    color: white;
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+  }
+  
+  .social-icons a:nth-child(1) { background-color: #1877f2; }
+  .social-icons a:nth-child(2) { background-color: #1da1f2; }
+  .social-icons a:nth-child(3) { background-color: #db4437; }
+  
+  .social-icons a:hover {
+    transform: scale(1.1);
+  }
+  
+  /* Contact Form */
+  .contact-form-box {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+    animation: fadeIn 0.6s ease-in-out;
+  }
+  
+  .form-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #1e3a8a;
+    margin-bottom: 2rem;
+  }
+  
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  
+  .form-group,
+  .form-row {
+    width: 100%;
+  }
+  
+  .contact_label {
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    display: block !important;
+  }
+  
+  
+  .input_contact,
+  textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    background-color: #f9fafb;
+    transition: all 0.2s ease;
+  }
+  
+  .input_contact:focus,
+  textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    background-color: white;
+  }
+  
+  textarea {
+    resize: vertical;
+  }
+  
+  .form-row {
+    
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .form-code input {
+    max-width: 6rem;
+  }
+  
+  button[type="submit"] {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.85rem;
+    font-weight: bold;
+    border: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  button[type="submit"]:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-2px);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  

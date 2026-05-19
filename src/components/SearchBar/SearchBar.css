@@ -1,0 +1,57 @@
+.search-bar-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-bar {
+  font-family: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif';
+}
+
+.search-submit-btn {
+  transition: all 0.2s ease;
+}
+
+.search-submit-btn:hover {
+  transform: scale(1.05);
+}
+
+.search-close-btn {
+  margin-right: 4px;
+  color: #8b5cf6;
+  transition: all 0.2s ease;
+}
+
+.search-close-btn:hover {
+  color: #7c3aed;
+  background-color: #f3f4f6;
+}
+
+/* Header Search Variant */
+.header-search {
+  min-width: 320px;
+}
+
+.search-bar-header {
+  width: 100%;
+}
+
+/* Page Search Variant */
+.page-search {
+  width: 100%;
+}
+
+.search-bar-page {
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .header-search {
+    min-width: 280px;
+  }
+
+  .search-bar-header {
+    width: 100%;
+  }
+}

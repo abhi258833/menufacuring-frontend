@@ -1,0 +1,711 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+.top_padding{
+  padding-top: 2rem;
+}
+:root {
+  --clr-primary: rgb(19.2541401274, 34.9261146497, 51.0458598726);
+  --clr-primar-light: #473b33;
+  --clr-secondary: #FCFCFC;
+  --clr-white: #ffffff;
+  --clr-black: #000;
+  --clr-pumpkin: #fe6c00;
+  --clr-silver: #a8a5a6;
+  --clr-silver-v1: #bdbabb;
+  --clr-scarlet: #fe1e00;
+  --clr-scarlet-v1: rgb(254, 30, 0, 0.79);
+  --clr-green: #00fe93;
+  --clr-yellow: #fec80a;
+  --clr-jet: #302924;
+  --clr-peach: #ffc397;
+  --font-family-base: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --transition-default: all 300ms ease-in-out;
+}
+
+
+.dark-mode {
+  --clr-primary: #121212;
+  --clr-secondary: #1e1e1e;
+  --clr-white: #e0e0e0;
+  --clr-black: #ffffff;
+  --clr-silver: #555;
+  --clr-jet: #292929;
+  --clr-pumpkin: #ff7f50;
+  --clr-green: #03fc88;
+  --clr-yellow: #ffcc00;
+}
+
+
+body {
+  font-family: var(--font-family-base);
+}
+
+html,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-family-base);
+}
+
+ul {
+  list-style-type: none;
+}
+
+a {
+  color: unset;
+  text-decoration: none;
+  color: var(--clr-white);
+}
+
+button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.img-fit-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: var(--transition-default);
+  color: var(--clr-white);
+  font-size: 1.6rem;
+  position: relative;
+  top: 6px;
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+.text-white {
+  color: var(--clr-white);
+}
+
+.text-silver-v1 {
+  color: var(--clr-silver-v1);
+}
+
+.text-scarlet {
+  color: var(--clr-scarlet);
+}
+
+.text-green {
+  color: var(--clr-green);
+}
+
+.bg-jet {
+  background: var(--clr-jet);
+}
+
+.text-sm {
+  font-size: 14px;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* commons */
+.lg-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.grid-common {
+  background-color: var(--clr-primary);
+  border-radius: 12px;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 8px 24px;
+  color: var(--clr-white);
+  padding: 24px;
+}
+
+.grid-c-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.grid-c-title-text {
+  font-weight: 400;
+  color: var(--clr-silver);
+}
+
+.grid-c-title-icon img {
+  width: 24px;
+}
+
+@media screen and (max-width: 1400px) {
+  .grid-common {
+    padding: 16px;
+  }
+
+  body {
+    font-size: 14px !important;
+  }
+}
+.collection_icon{
+  width: 1.3em;
+  height: 1.3em;
+  position: relative;
+  right: 5px;
+}
+.table_icon {
+  width: 0.5em;
+  height: 0.5em;
+}
+.sresult_icon{
+  width: 1em;
+  height: 1em;
+}
+.table_icon_add{
+  width: 1.2rem;
+  height: 1.2rem;
+  position: relative;
+  left: 12px;
+}
+
+.btn_table {
+  border: 1px solid black !important;
+  border-radius: 1px !important;
+}
+.btn_table_editi {
+  border: 1px solid black !important;
+  border-radius: 1px !important;
+  border-left: none !important;
+}
+
+.btn_table_dlt {
+  border: 1px solid black !important;
+  border-radius: 1px !important;
+  border-right: none !important;
+  border-left: none !important;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-field .MuiInputBase-root {
+  height: 40px !important;
+  border-radius: 5px 0px 0px 5px !important;
+}
+
+.search-field_item .MuiInputBase-root {
+  height: 40px !important;
+  border-radius: 5px 0px 0px 5px !important;
+}
+
+.search-field .MuiOutlinedInput-notchedOutline {
+  border-color: #ccc !important;
+}
+
+.search-field .MuiInputLabel-root {
+  color: gray !important;
+}
+
+.search-field_double .MuiInputLabel-root {
+  color: gray !important;
+}
+
+.button_search {
+  height: 40px !important;
+  background-color: var(--clr-primary) !important;
+  color: white !important;
+  text-transform: none !important;
+  border-radius: 0px 5px 5px 0px !important;
+}
+
+.button_search:hover {
+  background-color: #0056b3 !important;
+}
+
+/* add user & group css */
+
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&family=Roboto:wght@100..900&display=swap');
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.search-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.search-container .form-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: auto;
+}
+
+.header_shema {
+  white-space: nowrap;
+}
+
+.save-button {
+  height: 40px;
+}
+
+.add-user-button {
+  white-space: nowrap;
+  height: 40px;
+}
+
+.header_epeople {
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(to right, transparent, #999595, transparent) 1;
+}
+
+.TableRow.table_header {
+  padding: 10px 5px 10px 20px !important;
+}
+
+.button_search {
+  height: 54px;
+  bottom: 8px;
+}
+
+.search-container {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.search-field {
+  width: 100%;
+}
+
+.button-search {
+  background-color: #1976d2;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+.button-search:hover {
+  background-color: #1565c0;
+}
+
+.custom-label {
+  top: -9px !important;
+  left: 5px;
+  font-size: 14px;
+}
+
+.modal-paper {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 90% !important; 
+  max-width: 650px !important; 
+  border-radius: 8px !important;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2) !important;
+  padding: 24px 12px 0px 12px !important;
+  background-color: #fff !important;
+  font-family: 'IBM Plex Sans' !important;
+}
+
+/* Adjust for tablets */
+@media (min-width: 768px) {
+  .modal-paper {
+    width: 80% !important;
+  }
+}
+
+/* Adjust for desktops */
+@media (min-width: 1024px) {
+  .modal-paper {
+    width: 650px !important;
+  }
+}
+
+
+.modal-header {
+  font-size: 1.25rem !important;
+  font-family: 'IBM Plex Sans' !important;
+  padding-left: 5px !important;
+  font-weight: 900 !important;
+}
+
+.modal-subtext {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-form .MuiTextField-root {
+  width: 100%;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  left: 12px;
+  margin-top: 30px;
+}
+
+
+.add-user-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 12px 30px 12px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  width: 50%;
+}
+
+.btn-text {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.btn-icon {
+  text-align: right;
+}
+
+.add-user-btn:hover {
+  background-color: #0040d4;
+}
+
+
+.custom-textfield {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 1rem !important;
+  color: #161616 !important;
+  background-color: #f4f4f4 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid #8d8d8d !important;
+  font-size: 0.875rem !important;
+  height: 3rem !important;
+  letter-spacing: 0.16px !important;
+  line-height: 1.285 !important;
+  outline: 2px solid transparent !important;
+  outline-offset: -2px !important;
+  font-family: 'IBM Plex Sans' !important;
+}
+
+
+
+
+.custom-textfield .MuiOutlinedInput-notchedOutline {
+  border: none;
+}
+
+.modal-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  bottom: 15px;
+
+}
+.dropdown-header{
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: 0px 7px 0px 7px !important;
+}
+.css-1i27l4i{
+  gap: 0px !important;
+}
+.permissions-container{
+  padding: 0px 7px 0px 7px !important;
+}
+.close-icon {
+  cursor: pointer;
+}
+
+.group_form {
+  overflow-y: hidden !important;
+  padding: 0px !important;
+  padding-top: 8px !important;
+}
+
+.css-1dc80h3-MuiTableCell-root {
+  text-align: left;
+  align-items: flex-start;
+
+}
+
+.css-1orzuox-MuiTableCell-root {
+  text-align: left;
+}
+
+.group_btn {
+  gap: 5px;
+}
+
+
+/* bitstream ralated css  */
+.search-field_double {
+  height: 22px !important;
+  border-radius: 5px !important;
+  position: relative;
+  bottom: 9px;
+}
+
+.button_search_double {
+  height: 40px !important;
+  background-color: var(--clr-primary) !important;
+  color: white !important;
+  text-transform: none !important;
+  border-radius: 0px 5px 5px 0px !important;
+  position: relative;
+  right: 11px;
+}
+
+/* single item creation start */
+
+.create-item-container {
+  width: 700px;
+  margin: auto;
+  padding: 24px;
+  background-color: white;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  margin-bottom: 2rem !important;
+  margin-top: 50px !important;
+}
+
+.create-item-title {
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.create-item-input {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+
+.create-item-date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.create-item-select {
+  width: 80px;
+  text-align: center;
+}
+
+.create-item-file {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.item-submit_main {
+  display: flex;
+  justify-content: center;
+}
+
+.create-item-submit {
+  width: 50%;
+
+}
+
+/* single item creation end  */
+
+.item_input-field {
+  width: 100%;
+}
+
+.item_input-field .MuiInputBase-root {
+  height: 40px !important;
+  border-radius: 5px !important;
+}
+
+.item_input-field .MuiOutlinedInput-notchedOutline {
+  border-color: #ccc !important;
+}
+
+.item_input-field .MuiInputLabel-root {
+  color: gray !important;
+}
+
+.create-item-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.create-item-title {
+  text-align: center;
+  font-weight: bold;
+}
+
+.create-item-date-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+
+}
+
+.create-item-date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  bottom: 8px;
+}
+
+.create-item-select {
+  width: 100px;
+}
+
+.upload-container {
+  border: 2px dashed #ccc;
+  padding: 20px;
+  text-align: center;
+  border-radius: 8px;
+  background: #f9f9f9;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 15px;
+}
+
+.upload-container:hover {
+  border-color: #007bff;
+  background: #f1f1f1;
+}
+
+.upload-container input {
+  display: none;
+}
+
+.upload-icon {
+  font-size: 40px;
+  color: #007bff;
+}
+
+.upload-text {
+  font-weight: bold;
+  color: #555;
+}
+
+.item-submit_main {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.css-w76bbz-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input {
+  padding: 9px !important;
+}
+.type_field{
+  width: 250px !important;
+  margin-left: 2px !important;
+}
+
+.css-16htz67-MuiPaper-root-MuiDialog-paper{
+  margin: 0 !important;
+}
+.b_import_label{
+  display: unset;
+}
+.row {
+  --bs-gutter-x: 0 !important; 
+}
+
+/* user profile css */
+
+.profile_header{
+  padding-top: 15px;
+}
+
+/* Edit item css */
+
+.label-text {
+  color: #555;
+  font-weight: bold;
+  margin-right: 8px;
+}
+.item_header {
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    position: relative;
+    bottom: 10px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.item_header::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 3px;
+    background: linear-gradient(
+        to right,
+        rgba(255, 126, 95, 0) 0%,
+        #ff7e5f 40%,
+        #feb47b 60%,
+        rgba(254, 180, 123, 0) 100%
+    );
+    border-radius: 0;
+}
+.item-name {
+  color: rgb(129, 20, 246);
+}
+.main-content-holder{
+  margin-top: 60px;
+}
+.main_search.MuiTextField-root {
+  margin-bottom: 0 !important;
+}
+.login-container{
+  margin-bottom: 20px;
+}
+.policy_main_div{
+  margin-top: 20px;
+}
+
+.filter_name{
+  cursor: pointer;
+}

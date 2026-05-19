@@ -1,0 +1,523 @@
+
+import { siteConfig } from "../data/data";
+import axios from "axios";
+
+
+const authToken = localStorage.getItem("authToken") || "";
+const csrfToken = localStorage.getItem("csrfToken") || "";
+
+// Sort mapping for DSpace API compatibility
+const SORT_API_VALUES: Record<string, string> = {
+  'relevant': 'score,DESC',
+  'title-asc': 'dc.title,ASC',
+  'title-desc': 'dc.title,DESC',
+  'accessioned-asc': 'dc.date.accessioned,ASC',
+  'accessioned-desc': 'dc.date.accessioned,DESC',
+  'lastModified': 'dc.date.modified,DESC',
+};
+
+const getSortApiValue = (sortValue: string): string => {
+  return SORT_API_VALUES[sortValue] || 'score,DESC';
+};
+
+const buildWorkflowTaskQueryParams = (params: WorkflowTaskSearchParams): string => {
+  const queryParams = new URLSearchParams();
+  queryParams.append('configuration', 'workflow');
+
+  if (params.sort) {
+    const apiSortValue = getSortApiValue(params.sort);
+    queryParams.append('sort', apiSortValue);
+  } else {
+    queryParams.append('sort', 'score,DESC');
+  }
+
+  queryParams.append('page', (params.page || 0).toString());
+  queryParams.append('size', (params.size || 10).toString());
+
+  if (params.filters) {
+    Object.entries(params.filters).forEach(([key, value]) => {
+      if (!value) return;
+
+      if (Array.isArray(value)) {
+        value.forEach(val => {
+          if (key === 'date' && val.includes(' - ')) {
+            const dateRange = `[${val.split(' - ')[0]} TO ${val.split(' - ')[1]}]`;
+            queryParams.append('f.dateIssued', `${dateRange},equals`);
+          } else {
+            queryParams.append(`f.${key}`, `${val},equals`);
+          }
+        });
+      }
+    });
+  }
+  return queryParams.toString();
+};
+
+export const getWorkflowObjects = async (params: WorkflowTaskSearchParams) => {
+  let apiUrl = `${siteConfig.apiEndpoint}/api/discover/search/objects?${buildWorkflowTaskQueryParams(params)}&embed=thumbnail&embed=item/thumbnail&embed=accessStatus`;
+
+  if (params.query?.trim()) {
+    apiUrl += `&query=${encodeURIComponent(params.query)}`;
+  }
+
+  try {
+    const response = await axios.get<any>(apiUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authToken,
+      },
+      withCredentials: true,
+    });
+    const objects = response.data._embedded?.searchResult?._embedded?.objects || [];
+    console.log('[Workflow] Full API Response:', response.data);
+    console.log('[Workflow] Objects:', objects);
+    if (objects.length > 0) {
+      console.log('[Workflow] First object structure:', objects[0]);
+    }
+    return {
+      objects: objects,
+      totalElements: response.data._embedded?.searchResult?.page?.totalElements || 0
+    }
+  } catch (error: any) {
+    const errorStatus = error.response?.status || 500;
+    if (errorStatus === 400) {
+      window.location.href = `/error-400`;
+    } else if (errorStatus === 401) {
+      window.location.href = `/error-401`;
+    } else if (errorStatus === 403) {
+      window.location.href = `/error-403`;
+    } else if (errorStatus === 422) {
+      window.location.href = `/error-422`;
+    } else if (errorStatus === 500) {
+      window.location.href = `/error-500`;
+    } else {
+      window.location.href = `/error-404`;
+    }
+  }
+}
+
+export const getWorkflowSubmittersFacet = async (params: WorkflowTaskSearchParams) => {
+  let apiUrl = `${siteConfig.apiEndpoint}/api/discover/facets/submitter?${buildWorkflowTaskQueryParams(params)}`;
+
+  if (params.query) {
+    apiUrl += `&query=${encodeURIComponent(params.query)}`;
+  }
+
+  try {
+    const response = await axios.get<any>(apiUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-XSRF-TOKEN": csrfToken,
+        Authorization: authToken,
+      },
+      withCredentials: true,
+    });
+    return response.data._embedded?.values?.map((value: any) => ({
+      id: value.label,
+      label: value.label,
+      count: value.count
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching submitter facet:', error);
+    return [];
+  }
+};
+
+export const getWorkflowItemTypesFacet = async (params: WorkflowTaskSearchParams) => {
+  let apiUrl = `${siteConfig.apiEndpoint}/api/discover/facets/itemtype?${buildWorkflowTaskQueryParams(params)}`;
+
+  if (params.query) {
+    apiUrl += `&query=${encodeURIComponent(params.query)}`;
+  }
+
+  try {
+    const response = await axios.get<any>(apiUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-XSRF-TOKEN": csrfToken,
+        Authorization: authToken,
+      },
+      withCredentials: true,
+    });
+    return response.data._embedded?.values?.map((value: any) => ({
+      id: value.label,
+      label: value.label,
+      count: value.count
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching item type facet:', error);
+    return [];
+  }
+};
+
+export const getWorkflowNamedResourceTypesFacet = async (params: WorkflowTaskSearchParams) => {
+  let apiUrl = `${siteConfig.apiEndpoint}/api/discover/facets/namedresourcetype?${buildWorkflowTaskQueryParams(params)}`;
+
+  if (params.query) {
+    apiUrl += `&query=${encodeURIComponent(params.query)}`;
+  }
+
+  try {
+    const response = await axios.get<any>(apiUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-XSRF-TOKEN": csrfToken,
+        Authorization: authToken,
+      },
+      withCredentials: true,
+    });
+    return response.data._embedded?.values?.map((value: any) => ({
+      id: value.label,
+      label: value.label,
+      count: value.count
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching resource type facet:', error);
+    return [];
+  }
+};
+
+const handleApiError = (error: any) => {
+  const errorStatus = error.response?.status || 500;
+  const errorData = error.response?.data;
+  
+  // Log detailed error info
+  console.error('[API Error] Status:', errorStatus);
+  console.error('[API Error] Data:', errorData);
+  console.error('[API Error] Message:', error.message);
+};
+
+export const claimedtask = async (id: string) => {
+    try {
+        console.log('[API claimedtask] Received ID:', id, 'Type:', typeof id);
+        
+        // Extract numeric ID if it's a UUID or complex format
+        let taskId = id;
+        if (id && id.includes('-')) {
+            // If it's a UUID format, extract just the numeric part or take it as is
+            console.log('[API claimedtask] UUID format detected:', id);
+        }
+        
+        const url = `${siteConfig.apiEndpoint}/api/workflow/claimedtasks`;
+        // DSpace expects the pool task URI in text/uri-list format
+        const body = `${siteConfig.apiEndpoint}/api/workflow/pooltasks/${taskId}`;
+        
+        console.log('[Workflow] Claiming task');
+        console.log('[Workflow] URL:', url);
+        console.log('[Workflow] Body (pool task URI):', body);
+        console.log('[Workflow] Body is valid:', !!body && body.includes('/pooltasks/') && !body.includes('undefined'));
+        
+        const response = await axios.post(url, body, {
+            headers: {
+                "Content-Type": "text/uri-list",
+                "X-XSRF-TOKEN": csrfToken,
+                Authorization: authToken,
+            },
+            withCredentials: true,
+        });
+        
+        console.log('[Workflow] Claim response status:', response.status);
+        console.log('[Workflow] Claim response data:', response.data);
+        console.log('[Workflow] Claim response headers:', response.headers);
+        
+        // Handle different response states
+        if (response.status === 201 || response.status === 202 || response.status === 204) {
+            console.log('[Workflow] Task claimed successfully');
+            return { success: true, status: response.status, data: response.data };
+        }
+        
+        return response.data;
+    } catch (error: any) {
+        const errorStatus = error.response?.status || 500;
+        const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+        console.error('[Workflow] Claim error:', errorStatus, errorMsg);
+        console.error('[Workflow] Full error response:', error.response?.data);
+        console.error('[Workflow] Error details - ID was:', id, 'Type:', typeof id);
+        
+        // 422 - Unprocessable Entity means the pool task ID doesn't exist
+        if (errorStatus === 422) {
+            console.error('[Workflow] 422 Error - This might not be a valid pool task ID');
+            console.error('[Workflow] Check if task ID is in correct format');
+            throw new Error(`Invalid pool task ID (${id}). Task may already be claimed or ID format is incorrect.`);
+        }
+        
+        throw new Error(`Failed to claim task: Status ${errorStatus} - ${errorMsg || 'Unknown error'}`);
+    }
+};
+
+export const approveClaimedTask = async (id: number) => {
+    try {
+        const url = `${siteConfig.apiEndpoint}/api/workflow/claimedtasks/${id}`;
+        const params = new URLSearchParams();
+        params.append('submit_approve', 'true');
+
+        console.log('[Workflow] Approving task:', id);
+        console.log('[Workflow] URL:', url);
+        console.log('[Workflow] Body:', params.toString());
+        
+        const response = await axios.post(url, params, {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-XSRF-TOKEN": csrfToken,
+                Authorization: authToken,
+            },
+            withCredentials: true,
+        });
+        
+        console.log('[Workflow] Approve response status:', response.status);
+        console.log('[Workflow] Approve response data:', response.data);
+        
+        if (response.status === 201 || response.status === 202 || response.status === 204) {
+            console.log('[Workflow] Task approved successfully');
+            return { success: true, status: response.status, data: response.data };
+        }
+        
+        return response.data;
+    } catch (error: any) {
+        const errorStatus = error.response?.status || 500;
+        const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+        console.error('[Workflow] Approve error:', errorStatus, errorMsg);
+        console.error('[Workflow] Full error response:', error.response?.data);
+        throw new Error(`Failed to approve task: Status ${errorStatus} - ${errorMsg || 'Unknown error'}`);
+    }
+};
+
+export const deleteClaimedTask = async (id: number) => {
+    try {
+        const url = `${siteConfig.apiEndpoint}/api/workflow/claimedtasks/${id}`;
+        
+        console.log('[Workflow] Deleting task:', id);
+        console.log('[Workflow] URL:', url);
+        
+        const response = await axios.delete(url, {
+            headers: {
+                "Content-Type": "application/json",
+                "X-XSRF-TOKEN": csrfToken,
+                Authorization: authToken,
+            },
+            withCredentials: true,
+        });
+        
+        console.log('[Workflow] Delete response status:', response.status);
+        console.log('[Workflow] Delete response data:', response.data);
+        
+        if (response.status === 201 || response.status === 202 || response.status === 204) {
+            console.log('[Workflow] Task deleted successfully');
+            return { success: true, status: response.status, data: response.data };
+        }
+        
+        return response.data;
+    } catch (error: any) {
+        const errorStatus = error.response?.status || 500;
+        const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+        console.error('[Workflow] Delete error:', errorStatus, errorMsg);
+        console.error('[Workflow] Full error response:', error.response?.data);
+        throw new Error(`Failed to delete task: Status ${errorStatus} - ${errorMsg || 'Unknown error'}`);
+    }
+};
+
+export const rejectClaimedTask = async (id: number, reason: string) => {
+    try {
+        const url = `${siteConfig.apiEndpoint}/api/workflow/claimedtasks/${id}`;
+        const params = new URLSearchParams();
+        params.append('submit_reject', 'true');
+        params.append('reason', reason);
+
+        console.log('[Workflow] Rejecting task:', id);
+        console.log('[Workflow] URL:', url);
+        console.log('[Workflow] Body:', params.toString());
+        
+        const response = await axios.post(url, params, {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-XSRF-TOKEN": csrfToken,
+                Authorization: authToken,
+            },
+            withCredentials: true,
+        });
+        
+        console.log('[Workflow] Reject response status:', response.status);
+        console.log('[Workflow] Reject response data:', response.data);
+        
+        if (response.status === 201 || response.status === 202 || response.status === 204) {
+            console.log('[Workflow] Task rejected successfully');
+            return { success: true, status: response.status, data: response.data };
+        }
+        
+        return response.data;
+    } catch (error: any) {
+        const errorStatus = error.response?.status || 500;
+        const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+        console.error('[Workflow] Reject error:', errorStatus, errorMsg);
+        console.error('[Workflow] Full error response:', error.response?.data);
+        throw new Error(`Failed to reject task: Status ${errorStatus} - ${errorMsg || 'Unknown error'}`);
+    }
+};
+
+// Get pool tasks (unclaimed) - Uses discovery search API with workflow configuration
+// Note: GET /api/workflow/pooltasks is disabled in DSpace 8.1, so we use search API instead
+export const getPoolTasks = async (page: number = 0, size: number = 10) => {
+  try {
+    // Use discovery search with workflow configuration filter
+    // This returns unclaimed workflow items
+    // We need to embed the workflow task info to get pool task IDs
+    const url = `${siteConfig.apiEndpoint}/api/discover/search/objects?configuration=workflow&page=${page}&size=${size}&embed=item,submitter,workflowitem,workflow`;
+    console.log('[Workflow] Fetching pool tasks from discovery API:', url);
+    
+    const response = await axios.get<any>(url, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authToken,
+      },
+      withCredentials: true,
+    });
+    
+    console.log('[Workflow] Full pool tasks response:', response.data);
+    console.log('[Workflow] Response structure keys:', Object.keys(response.data));
+    
+    // Extract objects from discovery response
+    const searchObjects = response.data._embedded?.searchResult?._embedded?.objects || [];
+    const totalElements = response.data._embedded?.searchResult?.page?.totalElements || 0;
+    
+    console.log('[Workflow] Raw search objects:', searchObjects.length);
+    
+    // For each object, try to extract the pool task ID from the workflow object
+    const processedTasks = searchObjects.map((obj: any, index: number) => {
+      console.log(`[Workflow] Processing object ${index}:`, obj);
+      
+      // The object structure should be:
+      // obj._embedded.indexableObject contains the workflow item
+      const workflowObj = obj?._embedded?.indexableObject;
+      
+      // Try to get the ID from various places
+      let taskId = null;
+      
+      // Direct ID field in workflow object
+      if (workflowObj?.id) {
+        taskId = workflowObj.id;
+        console.log(`[Workflow] Object ${index} - Got ID from workflow.id:`, taskId);
+      }
+      // Try UUID
+      else if (workflowObj?.uuid) {
+        taskId = workflowObj.uuid;
+        console.log(`[Workflow] Object ${index} - Got ID from workflow.uuid:`, taskId);
+      }
+      // Extract from self link
+      else if (workflowObj?._links?.self?.href) {
+        const match = workflowObj._links.self.href.match(/\/(\d+)$|\/([a-f0-9\-]+)$/);
+        if (match) {
+          taskId = match[1] || match[2];
+          console.log(`[Workflow] Object ${index} - Got ID from href:`, taskId);
+        }
+      }
+      
+      console.log(`[Workflow] Object ${index} - Final task ID:`, taskId);
+      
+      // Return the object with an enhanced ID field for claim operations
+      return {
+        ...obj,
+        _taskId: taskId, // Store extracted task ID for claim operations
+      };
+    });
+    
+    console.log('[Workflow] Extracted pool tasks:', processedTasks);
+    console.log('[Workflow] Total elements:', totalElements);
+    
+    return {
+      tasks: Array.isArray(processedTasks) ? processedTasks : [],
+      totalElements: totalElements
+    }
+  } catch (error: any) {
+    console.error('[Workflow] Error fetching pool tasks - Status:', error.response?.status);
+    console.error('[Workflow] Error data:', error.response?.data);
+    console.error('[Workflow] Error message:', error.message);
+    
+    // If /api/workflow/pooltasks returns 500, it's disabled in this DSpace version
+    if (error.response?.status === 500 && error.response?.data?.message === 'An exception has occurred') {
+      console.warn('[Workflow] Pool tasks endpoint disabled - using search API instead');
+    }
+    
+    return { tasks: [], totalElements: 0 };
+  }
+};
+
+// Get claimed workflow tasks - Uses dedicated endpoint with fallback
+export const getClaimedTasks = async (page: number = 0, size: number = 10) => {
+  try {
+    console.log('[Workflow] Fetching claimed tasks, page:', page, 'size:', size);
+    
+    // Try the dedicated endpoint first
+    const url = `${siteConfig.apiEndpoint}/api/workflow/claimedtasks?page=${page}&size=${size}`;
+    console.log('[Workflow] Trying dedicated endpoint:', url);
+    
+    try {
+      const response = await axios.get<any>(url, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authToken,
+        },
+        withCredentials: true,
+      });
+      
+      console.log('[Workflow] ✅ Dedicated endpoint SUCCESS, status:', response.status);
+      console.log('[Workflow] Response data:', response.data);
+      
+      // Dedicated endpoint worked!
+      let tasks = [];
+      let totalElements = 0;
+      
+      if (Array.isArray(response.data)) {
+        tasks = response.data;
+        totalElements = response.data.length;
+      } else if (response.data._embedded?.claimedtasks) {
+        tasks = response.data._embedded.claimedtasks;
+        totalElements = response.data.page?.totalElements || tasks.length;
+      } else if (response.data.page) {
+        tasks = response.data._embedded?.claimedtasks || [];
+        totalElements = response.data.page.totalElements || 0;
+      }
+      
+      console.log('[Workflow] Dedicated endpoint returned', tasks.length, 'tasks');
+      
+      const processedTasks = tasks.map((task: any) => ({
+        ...task,
+        _taskId: task.id || task.uuid,
+      }));
+      
+      return { tasks: processedTasks, totalElements };
+    } catch (dedicatedError: any) {
+      const status = dedicatedError.response?.status;
+      console.log('[Workflow] ❌ Dedicated endpoint failed (status', status, ') - trying fallback');
+    }
+    
+    // FALLBACK: Use search API (returns ALL workflow items for now)
+    console.log('[Workflow] Attempting fallback via search API');
+    const searchUrl = `${siteConfig.apiEndpoint}/api/discover/search/objects?configuration=workflow&page=${page}&size=${size}&embed=item,submitter,workflowitem,workflow`;
+    
+    const searchResponse = await axios.get<any>(searchUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authToken,
+      },
+      withCredentials: true,
+    });
+    
+    const allObjects = searchResponse.data._embedded?.searchResult?._embedded?.objects || [];
+    const totalElements = searchResponse.data._embedded?.searchResult?.page?.totalElements || 0;
+    
+    console.log('[Workflow] ✅ Fallback search returned', allObjects.length, 'workflow objects');
+    
+    // For now, return ALL workflow items (will need proper filtering later)
+    const processedTasks = allObjects.map((obj: any) => ({
+      ...obj,
+      _taskId: obj?._embedded?.indexableObject?.id,
+    }));
+    
+    return { tasks: processedTasks, totalElements };
+    
+  } catch (error: any) {
+    console.error('[Workflow] ❌ Error in getClaimedTasks:', error.message);
+    console.error('[Workflow] Error status:', error.response?.status);
+    return { tasks: [], totalElements: 0 };
+  }
+};

@@ -1,0 +1,15 @@
+.rpv-toolbar__item button[data-testid="open__button"],  
+.rpv-toolbar__item button[data-testid="get-file__download-button"],
+.rpv-toolbar__item button[data-testid="print__button"] {
+    display: none !important;
+}
+
+.pdf-highlight {
+    transition: all 0.3s ease;
+}
+
+.pdf-highlight:focus,
+.pdf-highlight[style*="outline"] {
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+    border-radius: 2px;
+}

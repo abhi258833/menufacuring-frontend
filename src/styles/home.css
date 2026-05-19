@@ -1,0 +1,76 @@
+/* Home.css */
+.home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    max-width: 1200px;
+    margin: auto;
+    font-family: Arial, sans-serif;
+}
+
+.home-header {
+    background: linear-gradient(135deg, #4a90e2, #1454a8);
+    color: white;
+    padding: 40px 20px;
+    border-radius: 10px;
+    width: 100%;
+}
+
+.home-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.home-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    transition: transform 0.3s ease-in-out;
+}
+
+.home-card:hover {
+    transform: translateY(-5px);
+}
+
+.home-footer {
+    background: #333;
+    color: white;
+    padding: 15px;
+    width: 100%;
+    text-align: center;
+    border-radius: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .home-header {
+        padding: 30px 15px;
+    }
+
+    .home-content {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .home-card {
+        width: 90%;
+    }
+}
+
+@media (max-width: 480px) {
+    .home-header {
+        font-size: 16px;
+    }
+
+    .home-card {
+        width: 100%;
+        padding: 15px;
+    }
+}

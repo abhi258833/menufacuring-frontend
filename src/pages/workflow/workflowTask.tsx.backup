@@ -1,0 +1,564 @@
+import React, { useEffect, useState } from 'react'
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Grid,
+  TextField,
+  Typography,
+  Chip,
+  Stack,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  CircularProgress,
+  Alert
+} from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ViewWeekIcon from '@mui/icons-material/ViewWeek'
+import Loader from '../loader/loader'
+import { getClaimedTasks, getPoolTasks, claimedtask, approveClaimedTask, deleteClaimedTask, rejectClaimedTask } from '../../api/workflowTask'
+import { showToast } from '../../contexts/ToastProvider'
+import { resultsPerPageOptions } from '../../data/searchData'
+import PaginationComponent from '../../components/Pagination/PaginationComponent'
+import '../Search/Search.css'
+
+const WorkflowTaskManagement = () => {
+  const [workflowItems, setWorkflowItems] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [size, setSize] = useState(resultsPerPageOptions[3].value)
+  const [totalData, setTotalData] = useState(0)
+  const [taskType, setTaskType] = useState<'pool' | 'claimed'>('pool') // Toggle between pool and claimed
+  
+  // Dialog states
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<any>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null)
+
+  // Fetch workflow tasks
+  const handleSearch = async () => {
+    setIsLoading(true)
+    try {
+      console.log('[Component] Fetching', taskType, 'tasks - Page:', page - 1, 'Size:', size);
+      const result = taskType === 'pool' 
+        ? await getPoolTasks(page - 1, size)
+        : await getClaimedTasks(page - 1, size)
+      
+      console.log('[Component] Tasks result:', result);
+      console.log('[Component] Result type:', typeof result);
+      console.log('[Component] Result keys:', Object.keys(result || {}));
+      
+      if (result) {
+        console.log('[Component] Setting items from result.tasks:', result.tasks);
+        console.log('[Component] Tasks array length:', result.tasks?.length || 0);
+        console.log('[Component] Total data:', result.totalElements || 0);
+        console.log('[Component] First task in result:', result.tasks?.[0]);
+        
+        setWorkflowItems(result.tasks || [])
+        setTotalData(result.totalElements || 0)
+        
+        // Log task IDs for verification
+        if (result.tasks && result.tasks.length > 0) {
+          console.log('[Component] Task IDs:', result.tasks.map((t: any, i: number) => ({
+            index: i,
+            id: t?.id,
+            uuid: t?.uuid,
+            type: t?.type,
+            selfHref: t?._links?.self?.href
+          })));
+        }
+      } else {
+        console.warn('[Component] Result is null or undefined');
+        setWorkflowItems([])
+        setTotalData(0)
+      }
+    } catch (error) {
+      console.error('[Component] Error fetching workflow tasks:', error)
+      showToast('Failed to fetch workflow tasks', 'error')
+      setWorkflowItems([])
+      setTotalData(0)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Initial load and when filters change
+  useEffect(() => {
+    handleSearch()
+  }, [taskType, size])
+
+  // Handle page changes separately to avoid infinite loops
+  useEffect(() => {
+    if (page > 1) {
+      handleSearch()
+    }
+  }, [page])
+
+  const handleClaimTask = async (taskId: string) => {
+    console.log('[Handler] handleClaimTask called with ID:', taskId, 'Type:', typeof taskId);
+    
+    // Validate task ID format
+    if (!taskId || taskId === 'null' || taskId === 'undefined') {
+      showToast('Invalid task ID. Cannot claim.', 'error')
+      return
+    }
+    
+    setActionInProgress(taskId)
+    try {
+      console.log('[Handler] Attempting to claim task with ID:', taskId);
+      console.log('[Handler] Task ID is string number?', /^\d+$/.test(String(taskId)));
+      
+      const result = await claimedtask(String(taskId))
+      console.log('[Handler] Claim result:', result);
+      showToast('Task claimed successfully! Switching to claimed tasks view...', 'success')
+      
+      // Switch to claimed tasks view and fetch immediately
+      setActionInProgress(null)
+      setPage(1)
+      setTaskType('claimed')
+      
+      // Explicitly fetch claimed tasks after brief delay to ensure state has updated
+      setTimeout(async () => {
+        try {
+          console.log('[Handler] Fetching claimed tasks after claim, page:0 size:', size);
+          const claimedResult = await getClaimedTasks(0, size);
+          console.log('[Handler] Claimed tasks result:', claimedResult);
+          console.log('[Handler] Claimed tasks count:', claimedResult.tasks?.length);
+          
+          if (claimedResult && claimedResult.tasks) {
+            console.log('[Handler] Setting workflow items to', claimedResult.tasks.length, 'tasks');
+            setWorkflowItems(claimedResult.tasks);
+            setTotalData(claimedResult.totalElements || 0);
+            console.log('[Handler] ✅ UI updated with', claimedResult.tasks.length, 'claimed tasks');
+          } else {
+            console.error('[Handler] ❌ claimedResult or tasks is empty/null');
+            setWorkflowItems([]);
+            setTotalData(0);
+          }
+        } catch (fetchError: any) {
+          console.error('[Handler] ❌ Error fetching claimed tasks:', fetchError);
+          console.error('[Handler] Error message:', fetchError?.message);
+          console.error('[Handler] Error stack:', fetchError?.stack);
+          setWorkflowItems([]);
+          setTotalData(0);
+          showToast('Error loading claimed tasks: ' + (fetchError?.message || 'Unknown error'), 'error');
+        }
+      }, 300)
+    } catch (error: any) {
+      console.error('[Handler] Claim error:', error)
+      const errorMsg = error?.message || error?.response?.data?.message || 'Failed to claim task'
+      console.error('[Handler] Error message:', errorMsg)
+      console.error('[Handler] Error status:', error?.response?.status)
+      
+      // Check if it's a 422 error (invalid pool task ID)
+      if (error?.response?.status === 422) {
+        console.warn('[Handler] 422 Error - Invalid pool task ID or already claimed');
+        showToast('This task may already be claimed or the ID format is incorrect. Please refresh.', 'warning')
+      } else {
+        showToast(errorMsg, 'error')
+      }
+      
+      setActionInProgress(null)
+    }
+  }
+
+  const handleApproveTask = async (taskId: number) => {
+    console.log('[Handler] handleApproveTask called with ID:', taskId, 'Type:', typeof taskId);
+    if (!taskId || taskId === 0) {
+      showToast('Invalid task ID. Cannot approve.', 'error')
+      return
+    }
+    setActionInProgress(`approve-${taskId}`)
+    try {
+      const result = await approveClaimedTask(taskId)
+      console.log('[Handler] Approve result:', result);
+      showToast('Task approved successfully', 'success')
+      setTimeout(() => {
+        setActionInProgress(null)
+        handleSearch()
+      }, 300)
+    } catch (error: any) {
+      console.error('[Handler] Approve error:', error)
+      const errorMsg = error?.message || error?.response?.data?.message || 'Failed to approve task'
+      console.error('[Handler] Error message:', errorMsg)
+      showToast(errorMsg, 'error')
+      setActionInProgress(null)
+    }
+  }
+
+  const handleReturnTask = async (taskId: number) => {
+    console.log('[Handler] handleReturnTask called with ID:', taskId, 'Type:', typeof taskId);
+    if (!taskId || taskId === 0) {
+      showToast('Invalid task ID. Cannot return.', 'error')
+      return
+    }
+    setActionInProgress(`return-${taskId}`)
+    try {
+      const result = await deleteClaimedTask(taskId)
+      console.log('[Handler] Return result:', result);
+      showToast('Task returned to pool successfully', 'success')
+      setTimeout(() => {
+        setActionInProgress(null)
+        handleSearch()
+      }, 300)
+    } catch (error: any) {
+      console.error('[Handler] Return error:', error)
+      const errorMsg = error?.message || error?.response?.data?.message || 'Failed to return task'
+      console.error('[Handler] Error message:', errorMsg)
+      showToast(errorMsg, 'error')
+      setActionInProgress(null)
+    }
+  }
+
+  const handleRejectClick = (task: any) => {
+    console.log('[Handler] handleRejectClick called with task:', task);
+    setSelectedTask(task)
+    setRejectReason('')
+    setRejectDialogOpen(true)
+  }
+
+  const handleConfirmReject = async () => {
+    if (!selectedTask || !rejectReason.trim()) {
+      showToast('Please provide a reason for rejection', 'warning')
+      return
+    }
+
+    const taskId = getTaskId(selectedTask);
+    console.log('[Handler] handleConfirmReject with taskId:', taskId);
+    
+    if (!taskId || taskId === '0') {
+      showToast('Invalid task ID. Cannot reject.', 'error')
+      return
+    }
+    
+    const numericTaskId = typeof taskId === 'string' ? parseInt(taskId, 10) : taskId
+    
+    if (isNaN(numericTaskId)) {
+      showToast('Invalid task ID format. Cannot reject.', 'error')
+      return
+    }
+    
+    setActionInProgress(`reject-${taskId}`)
+    try {
+      const result = await rejectClaimedTask(numericTaskId, rejectReason)
+      console.log('[Handler] Reject result:', result);
+      showToast('Task rejected successfully', 'success')
+      setRejectDialogOpen(false)
+      setSelectedTask(null)
+      setRejectReason('')
+      setTimeout(() => {
+        setActionInProgress(null)
+        handleSearch()
+      }, 300)
+    } catch (error: any) {
+      console.error('[Handler] Reject error:', error)
+      const errorMsg = error?.message || error?.response?.data?.message || 'Failed to reject task'
+      console.error('[Handler] Error message:', errorMsg)
+      showToast(errorMsg, 'error')
+      setActionInProgress(null)
+    }
+  }
+
+  const getTaskTitle = (item: any) => {
+    // For pool tasks: item._embedded?.item
+    // For claimed tasks: item._embedded?.workflowItem._embedded.item
+    const metadata = item?._embedded?.workflowItem?._embedded?.item?.metadata ||
+                     item?._embedded?.item?.metadata
+    return metadata?.['dc.title']?.[0]?.value || 'Untitled'
+  }
+
+  const getSubmitterName = (item: any) => {
+    // For pool tasks: item._embedded?.item
+    // For claimed tasks: item._embedded?.workflowItem._embedded.item
+    const metadata = item?._embedded?.workflowItem?._embedded?.item?.metadata ||
+                     item?._embedded?.item?.metadata
+    const authors = metadata?.['dc.contributor.author']?.[0]?.value || 'Unknown'
+    return authors
+  }
+
+  const getTaskId = (item: any) => {
+    console.log('[Task ID Debug] Task object keys:', Object.keys(item || {}));
+    console.log('[Task ID Debug] Full task object:', item);
+    
+    let taskId = null;
+    
+    // FIRST: Check for extracted task ID from API (set by getPoolTasks)
+    if (item?._taskId) {
+      taskId = item._taskId;
+      console.log('[Task ID Debug] Using pre-extracted _taskId:', taskId);
+      return taskId;
+    }
+    
+    // Try different ID extraction paths for search results
+    
+    // Path 1: Direct indexable object ID (for search results)
+    if (item?._embedded?.indexableObject?.id) {
+      taskId = item._embedded.indexableObject.id;
+      console.log('[Task ID Debug] Found ID at _embedded.indexableObject.id:', taskId);
+    }
+    // Path 2: Workflow object ID
+    else if (item?._embedded?.indexableObject?.workflow?.id) {
+      taskId = item._embedded.indexableObject.workflow.id;
+      console.log('[Task ID Debug] Found ID at _embedded.indexableObject.workflow.id:', taskId);
+    }
+    // Path 3: Direct pool task ID
+    else if (item?.id) {
+      taskId = item.id;
+      console.log('[Task ID Debug] Found ID at item.id:', taskId);
+    }
+    // Path 4: UUID property
+    else if (item?.uuid) {
+      taskId = item.uuid;
+      console.log('[Task ID Debug] Found ID at item.uuid:', taskId);
+    }
+    // Path 5: Extract from self href link
+    else if (item?._links?.self?.href) {
+      const href = item._links.self.href;
+      const match = href.match(/\/(\d+)$|\/([a-f0-9\-]+)$/);
+      if (match) {
+        taskId = match[1] || match[2];
+        console.log('[Task ID Debug] Found ID from href:', taskId, 'from:', href);
+      }
+    }
+    // Path 6: Check for pooltask type in search result
+    else if (item?._embedded?.indexableObject?.type === 'pooltask' || item?.type === 'pooltask') {
+      // For pool tasks in search results, the UUID is the task ID
+      taskId = item?._embedded?.indexableObject?.id || item?.id;
+      console.log('[Task ID Debug] Found pool task ID:', taskId);
+    }
+    
+    console.log('[Task ID Debug] Final extracted task ID:', taskId, 'Type:', typeof taskId);
+    return taskId;
+  }
+
+  return (
+    <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant='h3' sx={{ mb: 1, fontWeight: 600, color: '#1a237e' }}>
+          Workflow Task Management
+        </Typography>
+        <Typography variant='body1' sx={{ color: '#666' }}>
+          Manage and process workflow tasks - claim pool tasks, approve, reject, or return items
+        </Typography>
+      </Box>
+
+      <Grid container spacing={3}>
+        {/* Results */}
+        <Grid item xs={12}>
+          {/* Task Type Toggle */}
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Stack direction='row' spacing={2} sx={{ alignItems: 'center' }}>
+                <Typography variant='body2' sx={{ fontWeight: 600 }}>View:</Typography>
+                <Button 
+                  variant={taskType === 'pool' ? 'contained' : 'outlined'}
+                  onClick={() => setTaskType('pool')}
+                  size='small'
+                >
+                  Pool Tasks (To Claim)
+                </Button>
+                <Button 
+                  variant={taskType === 'claimed' ? 'contained' : 'outlined'}
+                  onClick={() => setTaskType('claimed')}
+                  size='small'
+                >
+                  Claimed Tasks (To Review)
+                </Button>
+                <Button
+                  variant='outlined'
+                  size='small'
+                  onClick={handleSearch}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Refreshing...' : 'Refresh'}
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          {/* Info Bar */}
+          <Card sx={{ mb: 2 }}>
+            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant='body2' sx={{ color: '#666' }}>
+                  Showing{' '}
+                  <strong>
+                    {Math.min((page - 1) * size + 1, totalData)}-
+                    {Math.min(page * size, totalData)}
+                  </strong>{' '}
+                  of <strong>{totalData}</strong> tasks
+                </Typography>
+              </Box>
+              <FormControl size='small' sx={{ minWidth: 150 }}>
+                <InputLabel>Per Page</InputLabel>
+                <Select
+                  value={size}
+                  label='Per Page'
+                  onChange={(e) => {
+                    setSize(e.target.value as number)
+                    setPage(1)
+                  }}
+                >
+                  {resultsPerPageOptions.map(opt => (
+                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </CardContent>
+          </Card>
+
+          {/* Tasks List */}
+          {isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <Loader />
+            </Box>
+          ) : workflowItems.length === 0 ? (
+            <Alert severity='info'>No workflow tasks found</Alert>
+          ) : (
+            <>
+              <Stack spacing={2}>
+                {workflowItems.map((item, index) => (
+                  <Card key={`${item.id}-${index}`} sx={{ cursor: 'pointer', '&:hover': { boxShadow: 3 } }}>
+                    <CardContent>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={8}>
+                          <Typography variant='h6' sx={{ fontWeight: 600, mb: 1 }}>
+                            {getTaskTitle(item)}
+                          </Typography>
+                          <Typography variant='body2' sx={{ color: '#666', mb: 1 }}>
+                            <strong>Submitter:</strong> {getSubmitterName(item)}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                            <Chip
+                              label='Task Pool'
+                              size='small'
+                              color='primary'
+                              variant='outlined'
+                            />
+                            <Chip
+                              label='In Progress'
+                              size='small'
+                              color='warning'
+                              variant='outlined'
+                            />
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Stack spacing={1}>
+                            {taskType === 'pool' ? (
+                              <Button
+                                fullWidth
+                                variant='contained'
+                                color='success'
+                                size='small'
+                                onClick={() => handleClaimTask(getTaskId(item))}
+                                disabled={actionInProgress !== null}
+                                startIcon={actionInProgress === getTaskId(item) ? <CircularProgress size={16} /> : <ViewWeekIcon />}
+                              >
+                                {actionInProgress === getTaskId(item) ? 'Claiming...' : 'Claim Task'}
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  fullWidth
+                                  variant='contained'
+                                  color='primary'
+                                  size='small'
+                                  onClick={() => handleApproveTask(parseInt(getTaskId(item)) || 0)}
+                                  disabled={actionInProgress !== null}
+                                  startIcon={actionInProgress === `approve-${getTaskId(item)}` ? <CircularProgress size={16} /> : <CheckCircleIcon />}
+                                >
+                                  {actionInProgress === `approve-${getTaskId(item)}` ? 'Approving...' : 'Approve'}
+                                </Button>
+                                <Button
+                                  fullWidth
+                                  variant='outlined'
+                                  color='warning'
+                                  size='small'
+                                  onClick={() => handleReturnTask(parseInt(getTaskId(item)) || 0)}
+                                  disabled={actionInProgress !== null}
+                                >
+                                  {actionInProgress === `return-${getTaskId(item)}` ? 'Returning...' : 'Return to Pool'}
+                                </Button>
+                                <Button
+                                  fullWidth
+                                  variant='outlined'
+                                  color='error'
+                                  size='small'
+                                  onClick={() => handleRejectClick(item)}
+                                  disabled={actionInProgress !== null}
+                                  startIcon={<DeleteIcon />}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                          </Stack>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
+
+              {/* Pagination */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <PaginationComponent
+                  totalData={totalData}
+                  perPage={size}
+                  currentPage={page}
+                  onPageChange={(newPage) => {
+                    setPage(newPage)
+                  }}
+                />
+              </Box>
+            </>
+          )}
+        </Grid>
+      </Grid>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth='sm' fullWidth>
+        <DialogTitle>Reject Task</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Please provide a reason for rejecting this task
+          </DialogContentText>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            placeholder='Enter reason...'
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            variant='outlined'
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleConfirmReject}
+            variant='contained'
+            color='error'
+            disabled={!rejectReason.trim()}
+          >
+            Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
+
+export default WorkflowTaskManagement

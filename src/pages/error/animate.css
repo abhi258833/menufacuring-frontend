@@ -1,0 +1,245 @@
+.error-container {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at bottom, #0b0f2c 0%, #00010a 100%);
+}
+
+.stars,
+.twinkling,
+.clouds,
+.meteors {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-repeat: repeat;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    opacity: 0.8;
+}
+
+.stars {
+    background: url('https://www.transparenttextures.com/patterns/stardust.png');
+    animation: moveStars 200s linear infinite;
+}
+
+.twinkling {
+    background: url('https://tse4.mm.bing.net/th?id=OIP.QK8QAQNQSCpc8s6sRqo1gAHaEK&pid=Api&P=0&h=180') repeat;
+    animation: moveTwinkling 200s linear infinite;
+    opacity: 0.2;
+}
+.clouds {
+    background: url('https://tse1.mm.bing.net/th?id=OIP.LAb6Io0YyhV9yJohsAw5xQHaEK&pid=Api&P=0&h=180') no-repeat center center;
+    background-size: cover;
+    animation: moveClouds 200s linear infinite;
+    opacity: 0.2;
+}
+
+
+
+@keyframes moveStars {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -10000px 5000px;
+    }
+}
+
+@keyframes moveTwinkling {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 10000px 0;
+    }
+}
+
+@keyframes moveClouds {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 0 10000px;
+    }
+}
+
+@keyframes moveMeteors {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -10000px 10000px;
+    }
+}
+
+.error-card {
+    z-index: 2;
+    text-align: center;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+    transform: translateY(30px);
+    opacity: 0;
+    transition: all 1s ease;
+    color: #fff;
+}
+
+.error-card.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.glow-text {
+    font-size: 8rem;
+    color: #00ffe1;
+    text-shadow: 0 0 20px #00ffe1, 0 0 35px #00ffe1;
+    animation: glowing 1.5s infinite alternate;
+}
+
+@keyframes glowing {
+    0% {
+        text-shadow: 0 0 10px #00ffe1, 0 0 20px #00ffe1, 0 0 30px #00ffe1;
+    }
+
+    100% {
+        text-shadow: 0 0 25px #007fff, 0 0 35px #007fff, 0 0 50px #007fff;
+    }
+}
+
+.reason-list {
+    margin: 2rem auto;
+    list-style: none;
+    font-size: 1.3rem;
+    padding: 0;
+    max-width: 500px;
+    color: #d1faff;
+}
+
+.btn-group {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.space-btn {
+    padding: 0.75rem 2rem;
+    border: 2px solid #00ffe1;
+    background: transparent;
+    color: #00ffe1;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 1rem;
+    box-shadow: 0 0 10px #00ffe1;
+}
+
+.space-btn:hover {
+    background: #00ffe1;
+    color: #000;
+    box-shadow: 0 0 25px #00ffe1;
+}
+
+.space-btn.secondary {
+    border-color: #aaa;
+    color: #ccc;
+}
+
+.space-btn.secondary:hover {
+    background: #ccc;
+    color: #000;
+    box-shadow: 0 0 15px #ccc;
+}
+
+.planet {
+    width: 80px;
+    height: 80px;
+    background: url('https://cdn-icons-png.flaticon.com/512/616/616408.png') no-repeat center;
+    background-size: contain;
+    margin: 2rem auto;
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.spaceship {
+    width: 100px;
+    height: 100px;
+    background: url('https://cdn-icons-png.flaticon.com/512/1378/1378269.png') no-repeat center;
+    background-size: contain;
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: spaceship-animation 10s infinite;
+}
+
+@keyframes spaceship-animation {
+    0% {
+        top: -100px;
+        transform: translateX(-50%) rotate(0deg);
+    }
+
+    50% {
+        top: 50%;
+        transform: translateX(-50%) rotate(360deg);
+    }
+
+    100% {
+        top: -100px;
+        transform: translateX(-50%) rotate(720deg);
+    }
+}
+
+.bounce-fast {
+    animation: bounce-fast 2s infinite ease-in-out;
+}
+
+@keyframes bounce-fast {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+.text-light {
+    color: #b2ebf2;
+    font-size: 2rem;
+    margin-top: 1rem;
+}
+
+.text-muted {
+    color: #a0cfdc;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}

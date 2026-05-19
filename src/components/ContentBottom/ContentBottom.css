@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+.custom-footer {
+  background-color: #f9f9f9;
+  padding: 16px 0;
+  font-size: 14px;
+  width: 100%;
+}
+
+.footer-grid {
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.social-icons {
+  flex-wrap: nowrap !important;
+}
+
+@media (max-width: 600px) {
+  .footer-grid {
+    flex-direction: column !important;
+    text-align: center;
+    align-items: center !important;
+  }
+
+  .social-icons {
+    justify-content: center !important;
+    margin-top: 8px;
+  }
+}
+.custom-footer .MuiIconButton-root:focus {
+  outline: none;
+}
+
+.custom-footer .MuiIconButton-root:hover {
+  transform: none;
+  background-color: #333; 
+  box-shadow: none;
+}
+
