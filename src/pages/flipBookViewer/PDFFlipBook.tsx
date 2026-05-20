@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import HTMLFlipBook from "react-pageflip";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.entry";
@@ -7,7 +7,7 @@ import { Box, CircularProgress, Container, IconButton, Paper, InputBase, Divider
 import { getPDFUrl } from "../../api/bitstream";
 import { showToast } from "../../contexts/ToastProvider";
 import Loader from "../loader/loader";
-import { ChevronLeft, ChevronRight, Search, KeyboardArrowLeft, KeyboardArrowRight, Close } from "@mui/icons-material";
+import { ChevronLeft, ChevronRight, Search, KeyboardArrowLeft, KeyboardArrowRight, Close, ArrowBack } from "@mui/icons-material";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 
 const getAuthHeaders = (): Record<string, string> => {
@@ -25,8 +25,10 @@ const getAuthHeaders = (): Record<string, string> => {
 };
 
 const PDFFlipBook: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const uuid = searchParams.get("uuid");
+  const itemId = searchParams.get("itemId");
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [pages, setPages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,7 @@ const PDFFlipBook: React.FC = () => {
   const bookRef = useRef<React.ElementRef<typeof HTMLFlipBook>>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [matches, setMatches] = useState<
     { pageIndex: number; left: number; top: number; width: number; height: number }[]
   >([]);
@@ -350,59 +353,100 @@ const PDFFlipBook: React.FC = () => {
           >
             <ChevronLeft fontSize="large" />
           </IconButton>
-          <IconButton
-            onClick={() => window.close()}
+          <Box
             sx={{
               position: "absolute",
               top: 16,
               left: 16,
               zIndex: 50,
-              backgroundColor: "background.paper",
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              "&:hover": { backgroundColor: "action.hover" },
+              display: "flex",
+              gap: 1.5,
             }}
-            title="Close Viewer"
           >
-            <Close />
-          </IconButton>
+            <IconButton
+              onClick={() => {
+                window.close();
+                if (itemId) {
+                  navigate(`/items/${itemId}`);
+                }
+              }}
+              sx={{
+                backgroundColor: "background.paper",
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                "&:hover": { backgroundColor: "action.hover" },
+              }}
+              title="Close Viewer"
+            >
+              <Close />
+            </IconButton>
 
-          <Paper
-            component="form"
-            onSubmit={(e) => { e.preventDefault(); runSearch(); }}
-            sx={{
-              position: "absolute",
-              top: 16,
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 50,
-              p: '2px 4px',
-              display: 'flex',
-              alignItems: 'center',
-              width: { xs: 300, sm: 400 },
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              borderRadius: '8px'
-            }}
-          >
-            <InputBase
-              sx={{ ml: 2, flex: 1 }}
-              placeholder="Search in document..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-            <IconButton type="submit" sx={{ p: '10px' }} aria-label="search" color="primary">
+            {itemId && (
+              <IconButton
+                onClick={() => navigate(`/items/${itemId}`)}
+                sx={{
+                  backgroundColor: "background.paper",
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  "&:hover": { backgroundColor: "action.hover" },
+                }}
+                title="Back to Book Details"
+              >
+                <ArrowBack />
+              </IconButton>
+            )}
+
+            <IconButton
+              onClick={() => setIsSearchVisible(!isSearchVisible)}
+              sx={{
+                backgroundColor: "background.paper",
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                "&:hover": { backgroundColor: "action.hover" },
+                color: isSearchVisible ? "primary.main" : "inherit",
+              }}
+              title={isSearchVisible ? "Hide Search Bar" : "Show Search Bar"}
+            >
               <Search />
             </IconButton>
-            <Divider sx={{ height: 28, m: 0.5 }} orientation="vertical" />
-            <IconButton color="primary" sx={{ p: '10px' }} onClick={gotoPrev} disabled={!matches.length}>
-              <KeyboardArrowLeft />
-            </IconButton>
-            <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center', color: 'text.secondary', fontWeight: 500 }}>
-              {matches.length ? `${matchIdx + 1}/${matches.length}` : '0/0'}
-            </Typography>
-            <IconButton color="primary" sx={{ p: '10px' }} onClick={gotoNext} disabled={!matches.length}>
-              <KeyboardArrowRight />
-            </IconButton>
-          </Paper>
+          </Box>
+
+          {isSearchVisible && (
+            <Paper
+              component="form"
+              onSubmit={(e) => { e.preventDefault(); runSearch(); }}
+              sx={{
+                position: "absolute",
+                top: 16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 50,
+                p: '2px 4px',
+                display: 'flex',
+                alignItems: 'center',
+                width: { xs: 300, sm: 400 },
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                borderRadius: '8px'
+              }}
+            >
+              <InputBase
+                sx={{ ml: 2, flex: 1 }}
+                placeholder="Search in document..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              <IconButton type="submit" sx={{ p: '10px' }} aria-label="search" color="primary">
+                <Search />
+              </IconButton>
+              <Divider sx={{ height: 28, m: 0.5 }} orientation="vertical" />
+              <IconButton color="primary" sx={{ p: '10px' }} onClick={gotoPrev} disabled={!matches.length}>
+                <KeyboardArrowLeft />
+              </IconButton>
+              <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center', color: 'text.secondary', fontWeight: 500 }}>
+                {matches.length ? `${matchIdx + 1}/${matches.length}` : '0/0'}
+              </Typography>
+              <IconButton color="primary" sx={{ p: '10px' }} onClick={gotoNext} disabled={!matches.length}>
+                <KeyboardArrowRight />
+              </IconButton>
+            </Paper>
+          )}
 
           <Box
             sx={{

@@ -189,8 +189,8 @@ const ContentTop: React.FC = () => {
                     bgcolor: '#FFFFFF',
                     color: '#1F2937',
                     minWidth: 220,
-                    border: '1px solid #E1EAF0',
-                    borderTop: '5px solid #96C2DB',
+                    border: '1px solid #eef2f5',
+                    borderTop: '5px solid #8b5cf6',
                     borderRadius: 0,
                     mt: 1,
                     boxShadow: '0 18px 32px rgba(15, 23, 42, 0.10)',
@@ -198,9 +198,7 @@ const ContentTop: React.FC = () => {
                 }}
               >
                 <MenuItem
-                  disabled
                   sx={{
-                    opacity: 1,
                     cursor: 'default',
                     pointerEvents: 'none',
                     fontFamily: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif',
@@ -208,12 +206,15 @@ const ContentTop: React.FC = () => {
                     flexDirection: 'row',
                     alignItems: 'flex-start',
                     gap: 0.5,
-                    py: 1.2,
+                    py: 1.5,
+                    px: 2,
+                    borderBottom: '1px solid #eef2f5',
                     whiteSpace: 'nowrap',
+                    backgroundColor: 'transparent !important',
                   }}
                 >
-                  <span style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>Welcome</span>
-                  <span style={{ fontSize: 13, color: '#1F2937', fontWeight: 600 }}>
+                  <span style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>Welcome,</span>
+                  <span style={{ fontSize: 13, color: '#8b5cf6', fontWeight: 600 }}>
                     {firstName || "User"}
                   </span>
                 </MenuItem>
@@ -228,8 +229,13 @@ const ContentTop: React.FC = () => {
                   }}
                   sx={{
                     fontFamily: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif',
+                    color: '#1F2937',
+                    py: 1.2,
+                    px: 2,
+                    fontSize: 14,
                     '&:hover': {
-                      bgcolor: '#EDF4F7',
+                      bgcolor: '#f5f0ff',
+                      color: '#8b5cf6',
                     },
                   }}
                 >
@@ -246,8 +252,13 @@ const ContentTop: React.FC = () => {
                   }}
                   sx={{
                     fontFamily: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif',
+                    color: '#1F2937',
+                    py: 1.2,
+                    px: 2,
+                    fontSize: 14,
                     '&:hover': {
-                      bgcolor: '#EDF4F7',
+                      bgcolor: '#f5f0ff',
+                      color: '#8b5cf6',
                     },
                   }}
                 >
@@ -257,8 +268,13 @@ const ContentTop: React.FC = () => {
                   onClick={handleLogout}
                   sx={{
                     fontFamily: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif',
+                    color: '#1F2937',
+                    py: 1.2,
+                    px: 2,
+                    fontSize: 14,
                     '&:hover': {
-                      bgcolor: '#EDF4F7',
+                      bgcolor: '#f5f0ff',
+                      color: '#8b5cf6',
                     },
                   }}
                 >

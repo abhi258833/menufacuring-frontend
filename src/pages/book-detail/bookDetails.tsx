@@ -312,7 +312,7 @@ const BookDetails: React.FC = () => {
                                                                     </Tooltip>
 
                                                                     <Tooltip title="View In Flip PDF">
-                                                                        <IconButton className="action-icon-btn" onClick={() => window.open(`/flip-book-viewer?uuid=${bitstream.uuid}`, '_blank')}>
+                                                                        <IconButton className="action-icon-btn" onClick={() => window.open(`/flip-book-viewer?uuid=${bitstream.uuid}&itemId=${id}`, '_blank')}>
                                                                             <MenuBookIcon fontSize="small" />
                                                                         </IconButton>
                                                                     </Tooltip>
@@ -353,7 +353,7 @@ const BookDetails: React.FC = () => {
                                                                 </IconButton>
                                                             </Tooltip>
                                                             <Tooltip title="Flip PDF">
-                                                                <IconButton className="action-icon-btn" onClick={() => window.open(`/flip-book-viewer?uuid=${bitstream.uuid}`, '_blank')}>
+                                                                <IconButton className="action-icon-btn" onClick={() => window.open(`/flip-book-viewer?uuid=${bitstream.uuid}&itemId=${id}`, '_blank')}>
                                                                     <MenuBookIcon fontSize="small" />
                                                                 </IconButton>
                                                             </Tooltip>
