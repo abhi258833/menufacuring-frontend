@@ -7,6 +7,7 @@ import YearRangeSlider from '../Search/YearRangeSlider';
 import { sortOptions, resultsPerPageOptions, filterSections, metadataFields, FilterSection, SearchParams, FilterOption, } from '../../data/searchData';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, IconButton } from '@mui/material';
+import { FaTrashAlt, FaArrowRight } from 'react-icons/fa';
 import { iconsImgs } from '../../utils/images';
 import { siteConfig } from '../../data/data';
 import { Bitstream } from '../../data/bookDetail';
@@ -470,6 +471,7 @@ const Search: React.FC = () => {
                     </div>
                     <div className="dropdown-container">
                         <h1 className="Zns0ac"><span className="I75YIf">Setting</span></h1>
+                        <div className="shorting_option">
                         <div>
                             <label htmlFor="sort">Sort By</label>
                             <select
@@ -508,6 +510,8 @@ const Search: React.FC = () => {
                                 ))}
                             </select>
                         </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -809,16 +813,17 @@ const Search: React.FC = () => {
                                                                         e.stopPropagation();
                                                                         uuid && toggleItemSelection(uuid);
                                                                     }}
-                                                                    color="primary"
-                                                                    style={{
-                                                                        fontSize: "18px",
-                                                                        cursor: "pointer",
-                                                                        padding: "5px",
-                                                                        background: "none",
-                                                                    }}
                                                                     title="Delete"
+                                                                    sx={{
+                                                                        fontSize: '18px',
+                                                                        cursor: 'pointer',
+                                                                        padding: '6px',
+                                                                        bgcolor: 'rgba(255,255,255,0.12)',
+                                                                        color: 'error.main',
+                                                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.18)' },
+                                                                    }}
                                                                 >
-                                                                    <img className="itemh_icon" src={iconsImgs.remove} alt="Delete" />
+                                                                    <FaTrashAlt className="itemh_icon" style={{ color: '#d32f2f', fontSize: '18px' }} />
                                                                 </IconButton>
                                                             </Box>
                                                         )}
@@ -875,11 +880,12 @@ const Search: React.FC = () => {
                                                     }
                                                     style={{
                                                         border: isSelected ? '2px solid #1976d2' : '1px solid #ddd',
-                                                        borderRadius: '8px',
-                                                        padding: '10px',
+                                                        borderRadius: '10px',
+                                                        padding: '4px',
                                                         position: 'relative',
                                                         cursor: 'pointer',
                                                         height: '100%',
+                                                        boxSizing: 'border-box',
                                                         backgroundColor: isSelected ? '#e3f2fd' : '#fff',
                                                     }}
                                                 >
@@ -908,28 +914,14 @@ const Search: React.FC = () => {
                                                         style={{
                                                             display: "flex",
                                                             justifyContent: "center",
-                                                            margin: "10px 0",
+    
                                                         }}
                                                     >
                                                         <div
+                                                            className="thumbnail_panel"
                                                             style={{
-                                                                display: "flex",
-                                                                flexDirection: "column",
-                                                                gap: "8px",
-                                                                padding: "10px 5px 10px 5px",
-                                                                border: "1px solid #ccc",
-                                                                borderRadius: "12px",
-                                                                boxShadow: "2px 2px 6px rgba(0,0,0,0.1)",
-                                                                width: "500px",
-                                                                height: "240px",
                                                                 backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${bgImage})`,
-                                                                backgroundSize: "contain",
-                                                                backgroundRepeat: "no-repeat",
-                                                                backgroundPosition: "center",
-                                                                color: "#fff",
-                                                                fontFamily: "inter, sans-serif",
                                                             }}
-
                                                         >
                                                             {assetId && (
                                                                 <div>
@@ -1018,6 +1010,57 @@ const Search: React.FC = () => {
                                                                 </div>
                                                             )}
 
+                                                            <div
+                                                                className="thumbnail_actions"
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    width: '100%',
+                                                                    marginTop: 'auto',
+                                                                }}
+                                                            >
+                                                                {(isAdministrator || isAdmingroup) && (
+                                                                    <IconButton
+                                                                        className='itemh_btn'
+                                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                                            e.stopPropagation();
+                                                                            uuid && toggleItemSelection(uuid);
+                                                                        }}
+                                                                        sx={{
+                                                                            fontSize: '18px',
+                                                                            cursor: 'pointer',
+                                                                            padding: '5px',
+                                                                            backgroundColor: 'rgba(255,255,255,0.42)',
+                                                                            color: 'error.main',
+                                                                            '&:hover': { backgroundColor: 'rgba(255,255,255,0.58)' },
+                                                                        }}
+                                                                        title='Delete'
+                                                                    >
+                                                                        <FaTrashAlt className="itemh_icon" style={{ color: '#d32f2f', fontSize: '18px' }} />
+                                                                    </IconButton>
+                                                                )}
+
+                                                                <IconButton
+                                                                    className='itemh_btn'
+                                                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                                        e.stopPropagation();
+                                                                        handleTitleClick();
+                                                                    }}
+                                                                    sx={{
+                                                                        fontSize: '18px',
+                                                                        cursor: 'pointer',
+                                                                        padding: '5px',
+                                                                        backgroundColor: 'rgba(255,255,255,0.42)',
+                                                                        color: '#fff',
+                                                                        '&:hover': { backgroundColor: 'rgba(255,255,255,0.58)' },
+                                                                    }}
+                                                                >
+                                                                    <FaArrowRight className="itemh_icon" style={{ color: '#ffffff', fontSize: '18px' }} />
+                                                                </IconButton>
+                                                            </div>
+
                                                         </div>
                                                     </div>
 
@@ -1028,43 +1071,6 @@ const Search: React.FC = () => {
                                                         </p>
                                                     )}
 
-                                                    {/* Delete button */}
-                                                    {(isAdministrator || isAdmingroup) &&
-
-                                                        <IconButton
-                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                                                                e.stopPropagation();
-                                                                uuid && toggleItemSelection(uuid);
-                                                            }}
-                                                            color="primary"
-                                                            style={{
-                                                                fontSize: '18px',
-                                                                cursor: 'pointer',
-                                                                padding: '5px',
-                                                                background: 'none',
-                                                            }}
-                                                            title='Delete'
-                                                        >
-                                                            <img className="itemh_icon" src={iconsImgs.remove} alt="Delete" />
-                                                        </IconButton>
-                                                    }
-
-                                                    <IconButton
-                                                        className='itemh_btn'
-                                                        onClick={handleTitleClick}
-                                                        color="primary"
-                                                        style={{
-                                                            position: 'absolute',
-                                                            bottom: '3px',
-                                                            right: '14px',
-                                                            fontSize: '18px',
-                                                            cursor: 'pointer',
-                                                            padding: '5px',
-                                                            background: 'none',
-                                                        }}
-                                                    >
-                                                        <img className="itemh_icon" src={iconsImgs.arrow} alt="Arrow" />
-                                                    </IconButton>
                                                 </div>
                                             </Grid>
                                         );

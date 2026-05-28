@@ -6,7 +6,7 @@
   box-sizing: border-box;
 }
 .top_padding{
-  padding-top: 2rem;
+  padding: 2rem 0;
 }
 :root {
   --clr-primary: rgb(19.2541401274, 34.9261146497, 51.0458598726);

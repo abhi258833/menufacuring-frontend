@@ -201,6 +201,28 @@
   padding-bottom: 30px;
 }
 
+/* Departments header: place description directly below the title and style it */
+.home-department-panel .section-heading {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.home-department-panel .section-heading > div {
+  display: block;
+}
+
+.home-department-panel .section-heading h2 {
+  margin: 6px 0 0 !important;
+}
+
+.home-department-panel .section-heading p {
+  margin: 8px 0 0 !important;
+  max-width: 64ch !important;
+  color: #405771 !important;
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+
 .home-state-message {
   width: 100%;
   padding: 20px;

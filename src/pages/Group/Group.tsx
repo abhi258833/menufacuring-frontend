@@ -26,6 +26,7 @@ import AddGroup from "./AddGroup";
 import { useNavigate } from "react-router-dom";
 import { iconsImgs } from "../../utils/images";
 import { showToast } from "../../contexts/ToastProvider";
+import SearchBar from "../../components/SearchBar/SearchBar";
 
 const Groups = () => {
     const [groups, setGroups] = useState<Group[]>([]);
@@ -103,23 +104,26 @@ const Groups = () => {
             </Grid>
 
             <Grid container alignItems="center" className="search-container">
-                <Grid item xs={8.5} sm={10.5}  lg={11} >
-                    <TextField
-                        label="Search Groups..."
-                        variant="outlined"
-                        fullWidth
+                <Grid item xs={12}>
+                    <SearchBar
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="search-field"
-                        InputLabelProps={{ className: "custom-label" }}
-
+                        onChange={(val) => setSearchQuery(val)}
+                        onSubmit={(query) => {
+                            const q = query ?? searchQuery;
+                            setSearchQuery(q);
+                            setPage(1);
+                            loadGroups(1, q);
+                        }}
+                        placeholder="Search Groups..."
+                        variant="page"
+                        fullWidth
+                        showCloseButton
+                        onClear={() => {
+                            setSearchQuery("");
+                            setPage(1);
+                            loadGroups(1, "");
+                        }}
                     />
-                </Grid>
-
-                <Grid item>
-                    <Button className="button_search" variant="contained" color="primary" onClick={handleSearch}>
-                        Search
-                    </Button>
                 </Grid>
             </Grid>
 
