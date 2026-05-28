@@ -172,12 +172,13 @@ const Search: React.FC = () => {
         itemsPerPage: number = size,
         resetPage: boolean = false,
         sort: string = getSortParam(),
+        query: string = inputValue,
     ) => {
         setIsLoading(true);
         try {
             const pageToFetch = resetPage ? 1 : currentPage;
             const params: SearchParams = {
-                query: inputValue,
+                query,
                 page: pageToFetch - 1,
                 size: itemsPerPage,
                 sort: sort,
@@ -517,10 +518,11 @@ const Search: React.FC = () => {
                                 <SearchBar
                                     value={inputValue}
                                     onChange={setInputValue}
-                                    onSubmit={() => handleSearch(filters, 1, size, true, getSortParam())}
+                                    onSubmit={(query) => handleSearch(filters, 1, size, true, getSortParam(), query ?? inputValue)}
                                     placeholder="Search the repository..."
                                     variant="page"
                                     fullWidth
+                                    enableVoiceSearch
                                 />
                             </Grid>
                         </Grid>

@@ -32,6 +32,7 @@ import SearchBar from '../../components/SearchBar/SearchBar';
 
 const AdvanceSearch: React.FC = () => {
     const initialParams = parseSearchParamsFromUrl();
+    const defaultAdvancedField = advancedSearchFields[0]?.id || 'ContractStatus';
     const [loadingTime, setLoadingTime] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState<string>(initialParams.query || '');
     const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -61,7 +62,7 @@ const AdvanceSearch: React.FC = () => {
     const [thumbnailsByItem, setThumbnailsByItem] = useState<Record<string, Bitstream[]>>({});
     const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilter[]>([]);
     const [currentAdvancedFilter, setCurrentAdvancedFilter] = useState<AdvancedFilter>({
-        field: 'title',
+        field: defaultAdvancedField,
         operator: 'equals',
         value: ''
     });
@@ -74,6 +75,7 @@ const AdvanceSearch: React.FC = () => {
     );
     const [suggestions, setSuggestions] = useState<{ field: string, values: string[] }>({ field: '', values: [] });
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const suggestionEnabledFields = new Set(['ContractStatus', 'author', 'subject']);
     const getSortParam = (): string => {
         const option = sortOptions.find(opt => opt.value === sortOption);
         return option ? option.apiValue : 'score,DESC';
@@ -109,12 +111,13 @@ const AdvanceSearch: React.FC = () => {
         resetPage: boolean = false,
         sort: string = getSortParam(),
         currentAdvancedFilters: AdvancedFilter[] = advancedFilters
+        ,query: string = inputValue
     ) => {
         setIsLoading(true);
         try {
             const pageToFetch = resetPage ? 1 : currentPage;
             const params: SearchParams = {
-                query: inputValue,
+                query,
                 page: pageToFetch - 1,
                 size: itemsPerPage,
                 sort: sort,
@@ -578,22 +581,22 @@ const AdvanceSearch: React.FC = () => {
                                 <input className=''
                                     value={currentAdvancedFilter.value}
                                     onChange={(e) => {
+                                        const nextValue = e.target.value;
                                         setCurrentAdvancedFilter({
                                             ...currentAdvancedFilter,
-                                            value: e.target.value
+                                            value: nextValue
                                         });
 
-                                        if (currentAdvancedFilter.field === 'author' ||
-                                            currentAdvancedFilter.field === 'entityType' ||
-                                            currentAdvancedFilter.field === 'subject') {
-                                            fetchSuggestions(currentAdvancedFilter.field, e.target.value);
+                                        if (suggestionEnabledFields.has(currentAdvancedFilter.field)) {
+                                            fetchSuggestions(currentAdvancedFilter.field, nextValue);
+                                        } else {
+                                            setShowSuggestions(false);
+                                            setSuggestions({ field: '', values: [] });
                                         }
                                     }}
                                     onFocus={() => {
                                         if (currentAdvancedFilter.value.length > 1 &&
-                                            (currentAdvancedFilter.field === 'author' ||
-                                                currentAdvancedFilter.field === 'entityType' ||
-                                                currentAdvancedFilter.field === 'subject')) {
+                                            suggestionEnabledFields.has(currentAdvancedFilter.field)) {
                                             setShowSuggestions(true);
                                         }
                                     }}
@@ -690,10 +693,11 @@ const AdvanceSearch: React.FC = () => {
                                 <SearchBar
                                     value={inputValue}
                                     onChange={setInputValue}
-                                    onSubmit={() => handleSearch(filters, 1, size, true, getSortParam())}
+                                    onSubmit={(query) => handleSearch(filters, 1, size, true, getSortParam(), advancedFilters, query ?? inputValue)}
                                     placeholder="Search the repository..."
                                     variant="page"
                                     fullWidth
+                                    enableVoiceSearch
                                 />
                             </Grid>
                         </Grid>

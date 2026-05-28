@@ -307,9 +307,9 @@ const commonOperators: SearchOperator[] = [
 
 export const advancedSearchFields: AdvancedSearchField[] = [
   {
-    id: 'title',
-    label: 'Title',
-    fieldName: 'title',
+    id: 'ContractStatus',
+    label: 'Contract Status',
+    fieldName: 'ContractStatus',
     operators: commonOperators
   },
   {

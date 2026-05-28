@@ -73,8 +73,8 @@ const ContentTop: React.FC = () => {
     }
   };
 
-  const submitSearch = () => {
-    const trimmedQuery = searchQuery.trim();
+  const submitSearch = (query?: string) => {
+    const trimmedQuery = (query ?? searchQuery).trim();
 
     if (trimmedQuery) {
       const encodedQuery = encodeURIComponent(trimmedQuery);
@@ -155,6 +155,7 @@ const ContentTop: React.FC = () => {
             onSubmit={submitSearch}
             placeholder="What are you looking for?"
             variant="header"
+            enableVoiceSearch
           />
           <button
             className="nav-link-btn top-nav-btn"
@@ -444,7 +445,7 @@ const ContentTop: React.FC = () => {
                 }}
               >
                 View Profile
-              </button>
+              </button>a
               <button
                 className="nav-link-btn mobile-nav-btn"
                 onClick={() => {
