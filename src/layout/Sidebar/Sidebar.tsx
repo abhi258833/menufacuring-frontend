@@ -40,6 +40,8 @@ const Sidebar: React.FC = () => {
 
   const { groupCategories, isAdministrator } = useUserGroups();
 
+  const normalizePermissionKey = (value: string) => value.replace(/\s+/g, "").toLowerCase();
+
   const getSidebarIcon = (title: string): IconType => {
     const normalizedTitle = title.toLowerCase();
 
@@ -101,6 +103,7 @@ const Sidebar: React.FC = () => {
 
         const communities = await fetchCommunities();
         const dynamicLinks: NavigationLink[] = [];
+        const normalizedGroupNames = groupNames.map(normalizePermissionKey);
 
         for (const community of communities) {
           const communityCollections = await fetchCommunityCollections(community.id);
@@ -108,14 +111,14 @@ const Sidebar: React.FC = () => {
           communityCollections.forEach((collection, index) => {
             const name = collection.metadata?.["dc.title"]?.[0]?.value || "Collection";
             const basePath = `/collections/${name.toLowerCase()}`;
-            const groupNameBase = name.replace(/\s+/g, "");
+            const normalizedCollectionName = normalizePermissionKey(name);
 
             const canRead =
-              isAdminUser || groupNames.includes(`${groupNameBase}_Read`);
+              isAdminUser || normalizedGroupNames.includes(`${normalizedCollectionName}_read`);
             const canUpload =
-              isAdminUser || groupNames.includes(`${groupNameBase}_Upload`);
+              isAdminUser || normalizedGroupNames.includes(`${normalizedCollectionName}_upload`);
             const isCollectionAdmin =
-              isAdminUser || groupNames.includes(`${groupNameBase}_Admin`);
+              isAdminUser || normalizedGroupNames.includes(`${normalizedCollectionName}_admin`);
 
             if (canRead || canUpload || isCollectionAdmin) {
               const submenu: NavigationLink[] = [];

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import "../Login/Login.css";
 import "./ErrorPages.css";
 
-const Error403 = () => {
+export const NotFound: React.FC = () => {
   const navigate = useNavigate();
 
   return (
@@ -12,14 +12,14 @@ const Error403 = () => {
       <Box className="auth-shell">
         <Box className="auth-panel auth-form-panel">
           <Box className="login-copy">
-            <Typography variant="h1" className="error-code" style={{ color: '#ff4d4d' }}>
-              403
+            <Typography variant="h1" className="error-code" style={{ color: '#2563eb' }}>
+              404
             </Typography>
             <Typography variant="h3" className="login-title">
-              Forbidden Access
+              Page Not Found
             </Typography>
             <Typography className="login-subtitle">
-              You do not have permission to view this page.
+              The page you are looking for does not exist or has been moved.
             </Typography>
           </Box>
 
@@ -28,7 +28,7 @@ const Error403 = () => {
               <Button
                 variant="contained"
                 className="error-primary-btn"
-                style={{ background: '#ff4d4d' }}
+                style={{ background: '#2563eb' }}
                 onClick={() => navigate('/')}
               >
                 🏠 Go to Home
@@ -81,4 +81,4 @@ const Error403 = () => {
   );
 };
 
-export default Error403;
+export default NotFound;

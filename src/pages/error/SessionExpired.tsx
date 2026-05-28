@@ -1,45 +1,55 @@
 import React from 'react';
 import { Box, Button, Container, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import "../Login/Login.css";
 import "./ErrorPages.css";
 
-const Error403 = () => {
+export const SessionExpired: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const handleLoginAgain = () => {
+    const redirectUrl = searchParams.get('redirect') || '';
+    if (redirectUrl) {
+      navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <Container maxWidth={false} disableGutters className="auth-page login-page">
       <Box className="auth-shell">
         <Box className="auth-panel auth-form-panel">
           <Box className="login-copy">
-            <Typography variant="h1" className="error-code" style={{ color: '#ff4d4d' }}>
-              403
+            <Typography variant="h1" className="error-code" style={{ color: '#d97706' }}>
+              401
             </Typography>
             <Typography variant="h3" className="login-title">
-              Forbidden Access
+              Session Expired
             </Typography>
             <Typography className="login-subtitle">
-              You do not have permission to view this page.
+              Your session has expired. Please login again to resume.
             </Typography>
           </Box>
 
           <Box className="error-details-container">
-            <Box className="error-btn-group">
+            <Box className="error-btn-group" style={{ marginTop: '20px' }}>
               <Button
                 variant="contained"
                 className="error-primary-btn"
-                style={{ background: '#ff4d4d' }}
-                onClick={() => navigate('/')}
+                style={{ background: '#d97706' }}
+                onClick={handleLoginAgain}
               >
-                🏠 Go to Home
+                🔑 Log In Again
               </Button>
               
               <Button
                 variant="outlined"
                 className="error-secondary-btn"
-                onClick={() => window.history.back()}
+                onClick={() => navigate('/')}
               >
-                🔙 Go Back
+                🏠 Go to Home
               </Button>
             </Box>
           </Box>
@@ -81,4 +91,4 @@ const Error403 = () => {
   );
 };
 
-export default Error403;
+export default SessionExpired;

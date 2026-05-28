@@ -1,25 +1,36 @@
 import React from 'react';
 import { Box, Button, Container, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import * as AuthService from '../../services/AuthService';
 import "../Login/Login.css";
 import "./ErrorPages.css";
 
-const Error403 = () => {
+export const AccessDenied: React.FC = () => {
   const navigate = useNavigate();
+
+  const handleLoginDifferent = async () => {
+    try {
+      await AuthService.logout();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <Container maxWidth={false} disableGutters className="auth-page login-page">
       <Box className="auth-shell">
         <Box className="auth-panel auth-form-panel">
           <Box className="login-copy">
-            <Typography variant="h1" className="error-code" style={{ color: '#ff4d4d' }}>
+            <Typography variant="h1" className="error-code">
               403
             </Typography>
             <Typography variant="h3" className="login-title">
-              Forbidden Access
+              Access Denied
             </Typography>
             <Typography className="login-subtitle">
-              You do not have permission to view this page.
+              You do not have permission to access this resource.
             </Typography>
           </Box>
 
@@ -28,18 +39,9 @@ const Error403 = () => {
               <Button
                 variant="contained"
                 className="error-primary-btn"
-                style={{ background: '#ff4d4d' }}
-                onClick={() => navigate('/')}
+                onClick={handleLoginDifferent}
               >
-                🏠 Go to Home
-              </Button>
-              
-              <Button
-                variant="outlined"
-                className="error-secondary-btn"
-                onClick={() => window.history.back()}
-              >
-                🔙 Go Back
+                🔑 Login with Different Account
               </Button>
             </Box>
           </Box>
@@ -81,4 +83,4 @@ const Error403 = () => {
   );
 };
 
-export default Error403;
+export default AccessDenied;

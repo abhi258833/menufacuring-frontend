@@ -6,7 +6,7 @@ import { useContext, useState, useEffect } from "react";
 import { SidebarContext } from "../../contexts/sidebarContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { Box, IconButton, InputAdornment, Menu, MenuItem, TextField, Drawer } from "@mui/material";
-import { getAuthStatus, logout } from "../../api/authApi";
+import { getAuthStatus } from "../../api/authApi";
 import { showToast } from "../../contexts/ToastProvider";
 import { getUserById } from "../../api/usermanagement";
 import SearchIcon from "@mui/icons-material/Search";
@@ -17,7 +17,7 @@ import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded
 import SearchBar from "../SearchBar/SearchBar";
 
 const ContentTop: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const context = useContext(SidebarContext);
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
@@ -116,7 +116,6 @@ const ContentTop: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = "/";
     } catch (error) {
       showToast("Logout failed. Please try again.", "error");
     }
@@ -464,7 +463,6 @@ const ContentTop: React.FC = () => {
                 onClick={async () => {
                   try {
                     await logout();
-                    window.location.href = "/";
                   } catch (error) {
                     showToast("Logout failed. Please try again.", "error");
                   }

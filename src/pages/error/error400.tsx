@@ -1,119 +1,83 @@
-import React, { useEffect, useState } from 'react';
-import './animate.css';
-
-interface ParticlePosition {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-}
-
-interface ParticleProps {
-  id: number;
-  color: string;
-}
-
-interface ParticleData {
-  id: number;
-  color: string;
-}
-
-const Particle: React.FC<ParticleProps> = ({ color }) => {
-  const [position, setPosition] = useState<ParticlePosition>({
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    vx: Math.random() * 0.3 - 0.15,
-    vy: Math.random() * 0.3 - 0.15,
-  });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPosition((prev) => {
-        let { x, y, vx, vy } = prev;
-        x += vx;
-        y += vy;
-
-        if (x < 0 || x > 100) vx *= -1;
-        if (y < 0 || y > 100) vy *= -1;
-
-        return { x, y, vx, vy };
-      });
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div
-      className="particle"
-      style={{
-        position: 'absolute',
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-        width: '6px',
-        height: '6px',
-        borderRadius: '50%',
-        backgroundColor: color,
-        opacity: 0.7,
-      }}
-    />
-  );
-};
+import React from 'react';
+import { Box, Button, Container, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import "../Login/Login.css";
+import "./ErrorPages.css";
 
 const Error400 = () => {
- const [particles, setParticles] = useState<ParticleData[]>([]);
-  const [show, setShow] = useState(false);
-  const colors = ['#ff6b6b', '#48dbfb', '#1dd1a1', '#feca57', '#5f27cd'];
-
-  useEffect(() => {
-    setParticles(
-      Array.from({ length: 40 }, (_, i) => ({
-        id: i,
-        color: colors[Math.floor(Math.random() * colors.length)],
-      }))
-    );
-
-    const timer = setTimeout(() => setShow(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
-  useEffect(() => {
-    const timer = setTimeout(() => setShow(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const navigate = useNavigate();
 
   return (
-    <div className="error-container">
-      <div className="stars" />
-      <div className="twinkling" />
-      <div className="clouds" />
-      <div className="meteors" />
-      {particles.map((p) => (
-        <Particle key={p.id} id={p.id} color={p.color} />
-      ))}
+    <Container maxWidth={false} disableGutters className="auth-page login-page">
+      <Box className="auth-shell">
+        <Box className="auth-panel auth-form-panel">
+          <Box className="login-copy">
+            <Typography variant="h1" className="error-code" style={{ color: '#ef4444' }}>
+              400
+            </Typography>
+            <Typography variant="h3" className="login-title">
+              Bad Request
+            </Typography>
+            <Typography className="login-subtitle">
+              The request could not be processed due to invalid input or syntax.
+            </Typography>
+          </Box>
 
-      <div className={`error-card ${show ? 'fade-in' : ''}`}>
-        <h1 className="glow-text animate__animated animate__rubberBand">400</h1>
-        <h2 className="text-glow animate__animated animate__fadeInUp animate__delay-1s">
-          Bad Request
-        </h2>
-        <p className="animate__animated animate__fadeIn animate__delay-2s">
-          The request could not be processed due to invalid input or syntax.
-        </p>
+          <Box className="error-details-container">
+            <Box className="error-btn-group">
+              <Button
+                variant="contained"
+                className="error-primary-btn"
+                style={{ background: '#ef4444' }}
+                onClick={() => navigate('/')}
+              >
+                🏠 Go to Home
+              </Button>
+              
+              <Button
+                variant="outlined"
+                className="error-secondary-btn"
+                onClick={() => window.history.back()}
+              >
+                🔙 Go Back
+              </Button>
+            </Box>
+          </Box>
+        </Box>
 
-        <ul className="reason-list animate__animated animate__fadeInUp animate__delay-3s">
-          <li>• The request was malformed or contained invalid parameters</li>
-          <li>• The server was unable to understand the request</li>
-          <li>• Please verify the URL or form data and try again</li>
-        </ul>
-
-        <div className="btn-group animate__animated animate__fadeInUp animate__delay-4s">
-          <a href="/" className="space-btn">🏠 Home</a>
-          <button className="space-btn secondary" onClick={() => window.history.back()}>🔙 Go Back</button>
-        </div>
-      </div>
-
-      <div className="spaceship animate__animated animate__zoomInDown"></div>
-    </div>
+        <Box className="auth-panel auth-visual-panel" aria-hidden="true">
+          <Box className="art-grid" />
+          <Box className="art-rail art-rail-left">
+            <span className="art-dot art-dot-solid" />
+            <span className="art-dot art-dot-soft" />
+            <span className="art-dot art-dot-soft" />
+            <span className="art-dot art-dot-soft" />
+          </Box>
+          <Box className="art-rail art-rail-center">
+            <span className="art-node art-node-diamond" />
+            <span className="art-node art-node-pair" />
+          </Box>
+          <Box className="art-rail art-rail-right">
+            <span className="art-dot art-dot-solid art-dot-tall" />
+            <span className="art-dot art-dot-soft" />
+            <span className="art-dot art-dot-soft" />
+            <span className="art-dot art-dot-soft" />
+          </Box>
+          <Box className="art-path art-path-left" />
+          <Box className="art-path art-path-right" />
+          <Box className="art-arc art-arc-main" />
+          <Box className="art-arc art-arc-secondary" />
+          <Box className="art-band art-band-top" />
+          <Box className="art-band art-band-bottom" />
+          <Box className="art-diamond art-diamond-large" />
+          <Box className="art-diamond art-diamond-small" />
+          <Box className="art-ring art-ring-center" />
+          <Box className="art-ring art-ring-left" />
+          <Box className="art-circle art-circle-center" />
+          <Box className="art-circle art-circle-soft" />
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

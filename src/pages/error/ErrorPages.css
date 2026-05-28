@@ -1,0 +1,70 @@
+.login-page .auth-form-panel {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(32px, 4vw, 56px) 24px !important;
+}
+
+.login-page .login-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-bottom: none !important;
+}
+
+.login-page .error-details-container {
+  width: min(100%, 540px);
+  padding: 10px 0 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.login-page .error-code {
+  font-size: 84px !important;
+  font-weight: 500 !important;
+  color: #8b5cf6 !important;
+  line-height: 1 !important;
+  margin-bottom: 8px !important;
+}
+
+.login-page .error-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-page .error-primary-btn {
+  background: #8b5cf6 !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+  min-height: 50px;
+  text-transform: none !important;
+  font-size: 1rem !important;
+  box-shadow: none !important;
+  width: 100%;
+}
+
+.login-page .error-primary-btn:hover {
+  background: #7c3aed !important;
+}
+
+.login-page .error-secondary-btn {
+  border: 1px solid #d1d5db !important;
+  color: #374151 !important;
+  border-radius: 0 !important;
+  min-height: 50px;
+  text-transform: none !important;
+  font-size: 1rem !important;
+  background: transparent !important;
+  width: 100%;
+}
+
+.login-page .error-secondary-btn:hover {
+  background: #f9fafb !important;
+  border-color: #9ca3af !important;
+}

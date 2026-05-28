@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
 
 // Critical pages loaded eagerly for faster initial load
 import Home from "../pages/Home/Home";
@@ -25,6 +25,9 @@ const Error403 = lazy(() => import("../pages/error/error403"));
 const Error422 = lazy(() => import("../pages/error/error422"));
 const Error404 = lazy(() => import("../pages/error/error404"));
 const Error500 = lazy(() => import("../pages/error/error500"));
+const AccessDenied = lazy(() => import("../pages/error/AccessDenied"));
+const SessionExpired = lazy(() => import("../pages/error/SessionExpired"));
+const NotFound = lazy(() => import("../pages/error/NotFound"));
 const EditCommunity = lazy(() => import("../pages/EditCommunityCollection/editCommunity"));
 const CreatePolicy = lazy(() => import("../pages/collection/createPolicy"));
 const Policies = lazy(() => import("../pages/collection/policy"));
@@ -62,12 +65,18 @@ const PageLoader = () => (
 
 const ProtectedRoute = () => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <PageLoader />;
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    const redirectUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirectUrl}`} replace />;
+  }
+
+  return <Outlet />;
 };
 
 const PublicOnlyRoute = () => {
@@ -156,7 +165,11 @@ const AppRoutes = () => {
             <Route path="/system-information" element={<SystemInformation />} />
           </Route>
 
-          <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+          <Route path="/access-denied" element={<AccessDenied />} />
+          <Route path="/session-expired" element={<SessionExpired />} />
+          <Route path="/not-found" element={<NotFound />} />
+
+          <Route path="*" element={<Navigate to="/not-found" replace />} />
         </Routes>
       </Suspense>
     </>

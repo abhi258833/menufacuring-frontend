@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AuthTokenProvider } from "./contexts/AuthTokenContext";
 import { UserGroupProvider } from "./contexts/groupTypeContext";
 
+import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
+
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth(); 
 
@@ -29,7 +31,9 @@ const App: React.FC = () => {
         <AuthProvider>
           <UserGroupProvider>
             <Router> 
-              <AppContent />
+              <ErrorBoundary>
+                <AppContent />
+              </ErrorBoundary>
             </Router>
           </UserGroupProvider>
         </AuthProvider>
