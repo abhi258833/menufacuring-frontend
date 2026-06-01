@@ -37,6 +37,7 @@ const AdvanceSearch: React.FC = () => {
     const [inputValue, setInputValue] = useState<string>(initialParams.query || '');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [scope, setScope] = useState<string | undefined>(initialParams.scope);
+    const [resourceType, setResourceType] = useState<string | undefined>(initialParams.resourceType);
     const [filters, setFilters] = useState<Record<string, any>>(initialParams.filters || {});
     const [facets, setFacets] = useState<Record<string, FilterOption[]>>({});
     const [hasFileCounts, setHasFileCounts] = useState({
@@ -90,6 +91,7 @@ const AdvanceSearch: React.FC = () => {
                 filters: currentFilters,
                 sort: getSortParam(),
                 scope: scope,
+                resourceType: resourceType,
             };
 
             const [facetsResponse, hasFileResponse] = await Promise.all([
@@ -123,7 +125,8 @@ const AdvanceSearch: React.FC = () => {
                 sort: sort,
                 filters: currentFilters,
                 advancedFilters: currentAdvancedFilters.length ? currentAdvancedFilters : undefined,
-                scope: scope
+                scope: scope,
+                resourceType: resourceType
             } as SearchParams;
 
             updateUrlWithSearchParams(params);
@@ -262,7 +265,8 @@ const AdvanceSearch: React.FC = () => {
                 sort: getSortParam(),
                 filters: filters,
                 advancedFilters: newAdvancedFilters,
-                scope: scope
+                scope: scope,
+                resourceType: resourceType
             };
 
             setIsLoading(true);
@@ -299,7 +303,8 @@ const AdvanceSearch: React.FC = () => {
             sort: getSortParam(),
             filters: filters,
             advancedFilters: newAdvancedFilters.length ? newAdvancedFilters : undefined,
-            scope: scope
+            scope: scope,
+            resourceType: resourceType
         };
 
         setIsLoading(true);
@@ -338,6 +343,7 @@ const AdvanceSearch: React.FC = () => {
                 filters: filters,
                 sort: getSortParam(),
                 scope: scope,
+                resourceType: resourceType,
             };
 
             const newValues = await fetchFacet(
@@ -376,7 +382,8 @@ const AdvanceSearch: React.FC = () => {
                 page: 0,
                 size: 5,
                 filters: filters,
-                scope: scope
+                scope: scope,
+                resourceType: resourceType
             };
 
             const facetName = advancedSearchFields.find(f => f.id === field)?.fieldName || field;

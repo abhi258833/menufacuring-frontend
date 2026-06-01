@@ -30,7 +30,7 @@ export const fetchCollections = async (): Promise<Collection[]> => {
     const authToken = localStorage.getItem("authToken") || "";
 
     const response = await axios.get<ApiResponse>(
-      `${siteConfig.apiEndpoint}/api/discover/search/objects?page=0&size=10&dsoType=COLLECTION`,
+      `${siteConfig.apiEndpoint}/api/discover/search/objects?page=0&size=1000&dsoType=COLLECTION`,
       {
         headers: {
           "Content-Type": "application/json",

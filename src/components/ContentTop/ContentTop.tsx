@@ -5,7 +5,7 @@ import "./ContentTop.css";
 import { useContext, useState, useEffect } from "react";
 import { SidebarContext } from "../../contexts/sidebarContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { Box, IconButton, InputAdornment, Menu, MenuItem, TextField, Drawer } from "@mui/material";
+import { Box, ClickAwayListener, IconButton, InputAdornment, Menu, MenuItem, TextField, Drawer } from "@mui/material";
 import { getAuthStatus } from "../../api/authApi";
 import { showToast } from "../../contexts/ToastProvider";
 import { getUserById } from "../../api/usermanagement";
@@ -15,6 +15,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
 import SearchBar from "../SearchBar/SearchBar";
+import AdvancedSearchDialog from "../AdvancedSearchDialog/AdvancedSearchDialog";
 
 const ContentTop: React.FC = () => {
   const { isAuthenticated, logout } = useAuth();
@@ -25,6 +26,7 @@ const ContentTop: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
 
   if (!context) {
     throw new Error("ContentTop must be used within a SidebarProvider");
@@ -83,6 +85,49 @@ const ContentTop: React.FC = () => {
       setIsSearchOpen(false);
       setIsDrawerOpen(false);
     }
+  };
+
+  const handleAdvancedSearch = ({
+    resourceType,
+    scope,
+    collectionName,
+    advancedFilters
+  }: {
+    resourceType: string;
+    scope?: string;
+    collectionName?: string;
+    advancedFilters: Array<{ id?: string; field: string; operator: string; value: string }>;
+  }) => {
+    const urlParams = new URLSearchParams();
+
+    urlParams.set('page', '0');
+    urlParams.set('size', '20');
+    urlParams.set('sort', 'score,DESC');
+
+    if (resourceType && resourceType !== 'all') {
+      urlParams.set('resourceType', resourceType);
+    }
+
+    if (scope) {
+      urlParams.set('scope', scope);
+    }
+
+    if (collectionName) {
+      urlParams.set('collectionName', collectionName);
+    }
+
+    advancedFilters.forEach((filter) => {
+      urlParams.append('af_field', filter.field);
+      urlParams.append('af_operator', filter.operator);
+      urlParams.append('af_value', filter.value);
+    });
+
+    navigate(`/adminSearch?${urlParams.toString()}`);
+    setIsAdvancedSearchOpen(false);
+  };
+
+  const handleAdvancedSearchClose = () => {
+    setIsAdvancedSearchOpen(false);
   };
 
   const handleSearchClick = () => {
@@ -149,26 +194,45 @@ const ContentTop: React.FC = () => {
       <Box className="content-top-actions" display="flex" alignItems="center" gap={2}>
         {/* Desktop Navigation and Search (Visible >= 768px) */}
         <Box className="desktop-actions" display={{ xs: "none", md: "flex" }} alignItems="center" gap={2}>
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            onSubmit={submitSearch}
-            placeholder="What are you looking for?"
-            variant="header"
-            enableVoiceSearch
-          />
-          <button
-            className="nav-link-btn top-nav-btn"
-            onClick={() => navigate("/about")}
-          >
-            <span>About</span>
-          </button>
-          <button
-            className="nav-link-btn top-nav-btn"
-            onClick={() => navigate("/contact")}
-          >
-            <span>Contact</span>
-          </button>
+          <Box className="desktop-search-area">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSubmit={submitSearch}
+              placeholder="What are you looking for?"
+              variant="header"
+              enableVoiceSearch
+            />
+            <ClickAwayListener onClickAway={handleAdvancedSearchClose} mouseEvent="onMouseDown" touchEvent="onTouchStart">
+              <Box className="advanced-search-anchor">
+                <button
+                  className="nav-link-btn advanced-search-btn"
+                  onClick={() => setIsAdvancedSearchOpen((currentOpen) => !currentOpen)}
+                >
+                  <span>Advanced Search</span>
+                </button>
+                <AdvancedSearchDialog
+                  open={isAdvancedSearchOpen}
+                  onClose={handleAdvancedSearchClose}
+                  onSearch={handleAdvancedSearch}
+                />
+              </Box>
+            </ClickAwayListener>
+          </Box>
+          <Box className="desktop-nav-links">
+            <button
+              className="nav-link-btn top-nav-btn"
+              onClick={() => navigate("/about")}
+            >
+              <span>About</span>
+            </button>
+            <button
+              className="nav-link-btn top-nav-btn"
+              onClick={() => navigate("/contact")}
+            >
+              <span>Contact</span>
+            </button>
+          </Box>
           {isAuthenticated ? (
             <>
               <button
@@ -411,6 +475,15 @@ const ContentTop: React.FC = () => {
           <button
             className="nav-link-btn mobile-nav-btn"
             onClick={() => {
+              setIsDrawerOpen(false);
+              setIsAdvancedSearchOpen(true);
+            }}
+          >
+            Advanced Search
+          </button>
+          <button
+            className="nav-link-btn mobile-nav-btn"
+            onClick={() => {
               navigate("/about");
               toggleDrawer();
             }}
@@ -445,7 +518,7 @@ const ContentTop: React.FC = () => {
                 }}
               >
                 View Profile
-              </button>a
+              </button>
               <button
                 className="nav-link-btn mobile-nav-btn"
                 onClick={() => {

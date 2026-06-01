@@ -10,6 +10,7 @@ export interface SearchParams {
   size?: number;
   sort?: string;
   scope?: string;
+  resourceType?: string;
   communityName?: string;
   collectionName?: string;
   filters?: SearchFilters;
@@ -307,9 +308,117 @@ const commonOperators: SearchOperator[] = [
 
 export const advancedSearchFields: AdvancedSearchField[] = [
   {
+    id: 'title',
+    label: 'Title',
+    fieldName: 'title',
+    operators: commonOperators
+  },
+  {
+    id: 'date',
+    label: 'Date',
+    fieldName: 'dateIssued',
+    operators: commonOperators
+  },
+  {
+    id: 'assetid',
+    label: 'Asset Id',
+    fieldName: 'assetid',
+    operators: commonOperators
+  },
+  {
+    id: 'invoiceNumber',
+    label: 'Invoice Number',
+    fieldName: 'invoiceNumber',
+    operators: commonOperators
+  },
+  {
+    id: 'DocType',
+    label: 'Document Type',
+    fieldName: 'DocType',
+    operators: commonOperators
+  },
+  {
+    id: 'VendorName',
+    label: 'Vendor Name',
+    fieldName: 'VendorName',
+    operators: commonOperators
+  },
+  {
+    id: 'empid',
+    label: 'Employee Id',
+    fieldName: 'empid',
+    operators: commonOperators
+  },
+  {
+    id: 'EmpName',
+    label: 'Employee Name',
+    fieldName: 'EmpName',
+    operators: commonOperators
+  },
+  {
+    id: 'hrDocNo',
+    label: 'Document Number',
+    fieldName: 'hrDocNo',
+    operators: commonOperators
+  },
+  {
     id: 'ContractStatus',
     label: 'Contract Status',
     fieldName: 'ContractStatus',
+    operators: commonOperators
+  },
+  {
+    id: 'ContractOwner',
+    label: 'Contract Owner',
+    fieldName: 'ContractOwner',
+    operators: commonOperators
+  },
+  {
+    id: 'ContractValue',
+    label: 'Contract Value',
+    fieldName: 'ContractValue',
+    operators: commonOperators
+  },
+  {
+    id: 'organization',
+    label: 'Organization',
+    fieldName: 'organization',
+    operators: commonOperators
+  },
+  {
+    id: 'Material',
+    label: 'Material',
+    fieldName: 'Material',
+    operators: commonOperators
+  },
+  {
+    id: 'PaymentTerms',
+    label: 'Payment Terms',
+    fieldName: 'PaymentTerms',
+    operators: commonOperators
+  },
+  {
+    id: 'Quantity',
+    label: 'Quantity',
+    fieldName: 'Quantity',
+    operators: commonOperators
+  },
+  {
+    id: 'Status',
+    label: 'Status',
+    fieldName: 'Status',
+    operators: commonOperators
+  },
+  {
+    id: 'TotalValue',
+    label: 'Total Value',
+    fieldName: 'TotalValue',
+    operators: commonOperators
+  },
+  {
+    id: 'UnitPrice',
+    label: 'Unit Price',
+    fieldName: 'UnitPrice',
     operators: commonOperators
   },
   {
@@ -322,6 +431,30 @@ export const advancedSearchFields: AdvancedSearchField[] = [
     id: 'subject',
     label: 'Subject',
     fieldName: 'subject',
+    operators: commonOperators
+  },
+  {
+    id: 'abstract',
+    label: 'Abstract',
+    fieldName: 'dc.description.abstract',
+    operators: commonOperators
+  },
+  {
+    id: 'publisher',
+    label: 'Publisher',
+    fieldName: 'dc.publisher',
+    operators: commonOperators
+  },
+  {
+    id: 'entityType',
+    label: 'Entity Type',
+    fieldName: 'dspace.entity.type',
+    operators: commonOperators
+  },
+  {
+    id: 'issuedDate',
+    label: 'Issued Date',
+    fieldName: 'dc.date.issued',
     operators: commonOperators
   },
   {

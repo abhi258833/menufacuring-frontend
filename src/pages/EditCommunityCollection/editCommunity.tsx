@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchCommunities, fetchCollectionsItem, deleteCommunity, editCommunity } from '../../api/communities';
+import { fetchCommunities, fetchCollectionsItem, deleteCommunity, editCommunity, fetchSubCommunities } from '../../api/communities';
 import { Box, Container, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, TextField, Collapse, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { iconsImgs } from '../../utils/images';
 import { deleteCollection, editCollection } from '../../api/collection';
@@ -12,8 +12,10 @@ import SelectCommunityModal from '../collection/selectCommunity';
 
 
 const EditCommunity = () => {
-    const [communities, setCommunities] = useState<Community[]>([]);
-    const [expandedCommunity, setExpandedCommunity] = useState<string | null>(null);
+    type EditableCommunity = Community & { children?: EditableCommunity[] };
+
+    const [communities, setCommunities] = useState<EditableCommunity[]>([]);
+    const [expandedCommunities, setExpandedCommunities] = useState<string[]>([]);
     const [collections, setCollections] = useState<Record<string, Collection[]>>({});
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -41,11 +43,112 @@ const EditCommunity = () => {
     };
 
 
+    const getCommunityTitle = (community: Community) =>
+        community.metadata["dc.title"]?.[0]?.value || 'No Title Available';
+
+    const findCommunityByUuid = (
+        items: EditableCommunity[],
+        uuid: string
+    ): EditableCommunity | undefined => {
+        for (const item of items) {
+            if (item.uuid === uuid) {
+                return item;
+            }
+
+            const childMatch = item.children?.length
+                ? findCommunityByUuid(item.children, uuid)
+                : undefined;
+
+            if (childMatch) {
+                return childMatch;
+            }
+        }
+
+        return undefined;
+    };
+
+    const updateCommunityTree = (
+        items: EditableCommunity[],
+        uuid: string,
+        updater: (community: EditableCommunity) => EditableCommunity
+    ): EditableCommunity[] => {
+        return items.map((community) => {
+            if (community.uuid === uuid) {
+                return updater(community);
+            }
+
+            if (community.children?.length) {
+                return {
+                    ...community,
+                    children: updateCommunityTree(community.children, uuid, updater)
+                };
+            }
+
+            return community;
+        });
+    };
+
+    const removeCommunityFromTree = (items: EditableCommunity[], uuid: string): EditableCommunity[] => {
+        return items
+            .filter((community) => community.uuid !== uuid)
+            .map((community) => ({
+                ...community,
+                children: community.children?.length
+                    ? removeCommunityFromTree(community.children, uuid)
+                    : community.children
+            }));
+    };
+
+    const createEditableCommunity = (
+        community: Community,
+        childrenMap: Map<string, Community[]>
+    ): EditableCommunity => ({
+        ...community,
+        isEditing: false,
+        editedTitle: getCommunityTitle(community),
+        children: (childrenMap.get(community.uuid) || []).map((child) =>
+            createEditableCommunity(child, childrenMap)
+        )
+    });
+
     const fetchCommunityData = async () => {
         try {
             const response = await fetchCommunities();
             const communityData = response as CommunityResponse;
-            setCommunitiesWithEditingState(communityData._embedded.communities);
+            const communityList = communityData._embedded.communities || [];
+
+            const subcommunityResponses = await Promise.all(
+                communityList.map(async (community) => {
+                    try {
+                        const subcommunityData = await fetchSubCommunities(community.uuid, 0, 1000) as {
+                            _embedded?: { subcommunities?: Community[] };
+                        };
+
+                        return {
+                            parentUuid: community.uuid,
+                            subcommunities: subcommunityData._embedded?.subcommunities || []
+                        };
+                    } catch {
+                        return {
+                            parentUuid: community.uuid,
+                            subcommunities: []
+                        };
+                    }
+                })
+            );
+
+            const childIds = new Set<string>();
+            const childrenMap = new Map<string, Community[]>();
+
+            subcommunityResponses.forEach(({ parentUuid, subcommunities }) => {
+                if (subcommunities.length) {
+                    childrenMap.set(parentUuid, subcommunities);
+                    subcommunities.forEach((subcommunity) => childIds.add(subcommunity.uuid));
+                }
+            });
+
+            const topLevelCommunities = communityList.filter((community) => !childIds.has(community.uuid));
+            setCommunitiesWithEditingState(topLevelCommunities, childrenMap);
             setIsLoading(false);
         } catch (err) {
             setError('Failed to fetch communities');
@@ -56,61 +159,51 @@ const EditCommunity = () => {
         fetchCommunityData();
     }, []);
 
-    const setCommunitiesWithEditingState = (communities: Community[]) => {
-        setCommunities(communities.map(community => ({
-            ...community,
-            isEditing: false,
-            editedTitle: community.metadata["dc.title"]?.[0]?.value || ''
-        })));
+    const setCommunitiesWithEditingState = (
+        nextCommunities: Community[],
+        childrenMap: Map<string, Community[]>
+    ) => {
+        setCommunities(nextCommunities.map((community) => createEditableCommunity(community, childrenMap)));
     };
 
     const handleEditClick = (uuid: string) => {
-        setCommunities(communities.map(community => {
-            if (community.uuid === uuid) {
-                return {
-                    ...community,
-                    isEditing: true,
-                    editedTitle: community.metadata["dc.title"]?.[0]?.value || ''
-                };
-            }
-            return community;
-        }));
+        setCommunities((currentCommunities) =>
+            updateCommunityTree(currentCommunities, uuid, (community) => ({
+                ...community,
+                isEditing: true,
+                editedTitle: getCommunityTitle(community)
+            }))
+        );
     };
 
     const handleSaveClick = async (uuid: string) => {
         try {
-            const community = communities.find(c => c.uuid === uuid);
+            const community = findCommunityByUuid(communities, uuid);
             if (!community) return;
 
-            const originalTitle = community.metadata["dc.title"]?.[0]?.value || '';
+            const originalTitle = getCommunityTitle(community);
 
             if (community.editedTitle === originalTitle) {
-                setCommunities(communities.map(value => {
-                    if (value.uuid === uuid) {
-                        return {
-                            ...value,
-                            isEditing: false
-                        };
-                    }
-                    return value;
-                }));
+                setCommunities((currentCommunities) =>
+                    updateCommunityTree(currentCommunities, uuid, (value) => ({
+                        ...value,
+                        isEditing: false
+                    }))
+                );
                 return;
             }
 
             await editCommunity(uuid, community.editedTitle || '');
-            setCommunities(communities.map(value => {
-                if (value.uuid === uuid) {
-                    return {
-                        ...value,
-                        isEditing: false,
-                        metadata: {
-                            ...value.metadata,
-                            "dc.title": [{ ...value.metadata["dc.title"][0], value: value.editedTitle || '' }]
-                        }
-                    };
-                }
-                return value;
-            }));
+            setCommunities((currentCommunities) =>
+                updateCommunityTree(currentCommunities, uuid, (value) => ({
+                    ...value,
+                    isEditing: false,
+                    metadata: {
+                        ...value.metadata,
+                        "dc.title": [{ ...value.metadata["dc.title"][0], value: value.editedTitle || '' }]
+                    }
+                }))
+            );
 
         } catch (err) {
             console.error('Failed to update community', err);
@@ -118,38 +211,32 @@ const EditCommunity = () => {
     };
 
     const handleCancelClick = (uuid: string) => {
-        setCommunities(communities.map(community => {
-            if (community.uuid === uuid) {
-                return {
-                    ...community,
-                    isEditing: false,
-                    editedTitle: community.metadata["dc.title"]?.[0]?.value || ''
-                };
-            }
-            return community;
-        }));
+        setCommunities((currentCommunities) =>
+            updateCommunityTree(currentCommunities, uuid, (community) => ({
+                ...community,
+                isEditing: false,
+                editedTitle: getCommunityTitle(community)
+            }))
+        );
     };
 
     const handleTitleChange = (uuid: string, value: string) => {
-        setCommunities(communities.map(community => {
-            if (community.uuid === uuid) {
-                return {
-                    ...community,
-                    editedTitle: value
-                };
-            }
-            return community;
-        }));
+        setCommunities((currentCommunities) =>
+            updateCommunityTree(currentCommunities, uuid, (community) => ({
+                ...community,
+                editedTitle: value
+            }))
+        );
     };
 
     const handleDeleteClick = (uuid: string) => {
-        const community = communities.find(c => c.uuid === uuid);
+        const community = findCommunityByUuid(communities, uuid);
         if (!community) return;
 
         setItemToDelete({
             type: 'community',
             uuid,
-            name: community.metadata["dc.title"]?.[0]?.value || 'this community'
+            name: getCommunityTitle(community)
         });
         setDeleteModalOpen(true);
     };
@@ -170,7 +257,11 @@ const EditCommunity = () => {
                 [uuid]: collectionsWithEditingState
             }));
 
-            setExpandedCommunity(expandedCommunity === uuid ? null : uuid);
+            setExpandedCommunities((currentExpanded) =>
+                currentExpanded.includes(uuid)
+                    ? currentExpanded.filter((communityUuid) => communityUuid !== uuid)
+                    : [...currentExpanded, uuid]
+            );
         } catch (err) {
             setError('Failed to fetch collections');
         }
@@ -298,7 +389,9 @@ const EditCommunity = () => {
         try {
             if (itemToDelete.type === 'community') {
                 await deleteCommunity(itemToDelete.uuid);
-                setCommunities(communities.filter(community => community.uuid !== itemToDelete.uuid));
+                setCommunities((currentCommunities) =>
+                    removeCommunityFromTree(currentCommunities, itemToDelete.uuid)
+                );
             } else if (itemToDelete.type === 'collection' && itemToDelete.communityUuid) {
                 await deleteCollection(itemToDelete.uuid);
                 setCollections(prev => {
@@ -330,6 +423,238 @@ const EditCommunity = () => {
         navigate(`/Policies/${communityUuid}`);
     };
 
+    const renderCommunityRows = (community: EditableCommunity, depth: number = 0): React.ReactNode => (
+        <React.Fragment key={community.uuid}>
+            <TableRow
+                sx={{
+                    "&:hover": { backgroundColor: "#f0f0f0" },
+                    cursor: "pointer",
+                }}
+                onClick={(e) => handleShowCollection(community.uuid, e)}
+            >
+                <TableCell sx={{ pl: 2 + depth * 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {depth > 0 && (
+                            <Box component="span" sx={{ color: '#94a3b8', fontSize: 18, lineHeight: 1 }}>
+                                -
+                            </Box>
+                        )}
+                        {community.isEditing ? (
+                            <TextField
+                                variant="outlined"
+                                size="small"
+                                value={community.editedTitle}
+                                onClick={(e => e.stopPropagation())}
+                                onChange={(e) => handleTitleChange(community.uuid, e.target.value)}
+                                fullWidth
+                            />
+                        ) : (
+                            getCommunityTitle(community)
+                        )}
+                    </Box>
+                </TableCell>
+                <TableCell>
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        {community.isEditing ? (
+                            <Box>
+                                <IconButton
+                                    className='btn_table'
+                                    color="primary"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSaveClick(community.uuid)
+                                    }}
+                                    title="Save"
+                                >
+                                    <img className="table_icon" src={iconsImgs.save} alt="Save" />
+                                </IconButton>
+                                <IconButton
+                                    className='btn_table'
+                                    color="secondary"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCancelClick(community.uuid)
+                                    }}
+                                    title="Cancel"
+                                >
+                                    <img className="table_icon" src={iconsImgs.cancel} alt="Cancel" />
+                                </IconButton>
+                            </Box>
+                        ) : (
+                            <Box>
+                                <IconButton
+                                    className='btn_table'
+                                    color="primary"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditClick(community.uuid)
+                                    }}
+                                    title="Edit"
+                                >
+                                    <img className="table_icon" src={iconsImgs.edit} alt="Edit" />
+                                </IconButton>
+                                <IconButton
+                                    className='btn_table_dlt'
+                                    color="error"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteClick(community.uuid)
+                                    }}
+                                    title="Delete"
+                                >
+                                    <img className="table_icon" src={iconsImgs.remove} alt="Remove" />
+                                </IconButton>
+                                <IconButton
+                                    className='btn_table'
+                                    color="secondary"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCommunityPolicyClick(community.uuid)
+                                    }}
+                                    title="CommunityPolicy"
+                                >
+                                    <img className="table_icon" src={iconsImgs.access} alt="Remove" />
+                                </IconButton>
+                                <IconButton
+                                    className='btn_table'
+                                    color="primary"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleShowCollection(community.uuid);
+                                    }}
+                                    title="View Collections"
+                                >
+                                    {expandedCommunities.includes(community.uuid) ? <img className="table_icon" src={iconsImgs.minus} alt="Minus" /> : <img className="table_icon" src={iconsImgs.add} alt="Add" />}
+                                </IconButton>
+                            </Box>
+                        )}
+                    </Box>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                    <Collapse in={expandedCommunities.includes(community.uuid)} timeout="auto" unmountOnExit>
+                        <Box margin={1}>
+                            {community.children && community.children.length > 0 && (
+                                <Box>
+                                    <Typography variant="h6" gutterBottom component="div">
+                                        Sub-Communities
+                                    </Typography>
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                                                <TableCell><b>Sub-Community Name</b></TableCell>
+                                                <TableCell><b>Actions</b></TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {community.children.map((child) => renderCommunityRows(child, depth + 1))}
+                                        </TableBody>
+                                    </Table>
+                                </Box>
+                            )}
+
+                            <Box sx={{ mt: community.children && community.children.length > 0 ? 3 : 0 }}>
+                                <Typography variant="h6" gutterBottom component="div">
+                                    Collections
+                                </Typography>
+                                <Table size="small">
+                                    <TableHead>
+                                        <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                                            <TableCell><b>Collection Name</b></TableCell>
+                                            <TableCell><b>Actions</b></TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {collections[community.uuid]?.map((collection) => (
+                                            <TableRow
+                                                sx={{
+                                                    "&:hover": { backgroundColor: "#f0f0f0" },
+                                                    cursor: "pointer",
+                                                }}
+                                                key={collection.uuid}>
+                                                <TableCell>
+                                                    {collection.isEditing ? (
+                                                        <TextField
+                                                            value={collection.editedTitle}
+                                                            onChange={(e) => handleCollectionTitleChange(community.uuid, collection.uuid, e.target.value)}
+                                                            fullWidth
+                                                        />
+                                                    ) : (
+                                                        collection.metadata["dc.title"]?.[0]?.value || 'No Title Available'
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Box>
+                                                        {collection.isEditing ? (
+                                                            <>
+                                                                <IconButton
+                                                                    className='btn_table'
+                                                                    color="primary"
+                                                                    onClick={() => handleCollectionSaveClick(community.uuid, collection.uuid)}
+                                                                    title="Save"
+                                                                >
+                                                                    <img className="table_icon" src={iconsImgs.save} alt="Save" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    className='btn_table'
+                                                                    color="secondary"
+                                                                    onClick={() => handleCollectionCancelClick(community.uuid, collection.uuid)}
+                                                                    title="Cancel"
+                                                                >
+                                                                    <img className="table_icon" src={iconsImgs.cancel} alt="Cancel" />
+                                                                </IconButton>
+                                                            </>
+                                                        ) : (
+                                                            <Box>
+                                                                <IconButton
+                                                                    className='btn_table'
+                                                                    color="primary"
+                                                                    onClick={() => handleCollectionEditClick(community.uuid, collection.uuid)}
+                                                                    title="Edit"
+                                                                >
+                                                                    <img className="table_icon" src={iconsImgs.edit} alt="Edit" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    className='btn_table'
+                                                                    color="error"
+                                                                    onClick={() => handleCollectionDeleteClick(community.uuid, collection.uuid)}
+                                                                    title="Delete"
+                                                                >
+                                                                    <img className="table_icon" src={iconsImgs.remove} alt="Remove" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    className='btn_table'
+                                                                    color="secondary"
+                                                                    onClick={() => handleCollectionPolicyClick(community.uuid, collection.uuid)}
+                                                                    title="CollectionPolicy"
+                                                                >
+                                                                    <img className="table_icon" src={iconsImgs.access} alt="Policy" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    className='btn_table'
+                                                                    color="primary"
+                                                                    onClick={() => handleCollectionAssignRoleClick(collection.uuid)}
+                                                                    title="Assign Role"
+                                                                >
+                                                                    <img className="table_icon" src={iconsImgs.group_icon_black} alt="Assign Role" />
+                                                                </IconButton>
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </Box>
+                        </Box>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </React.Fragment>
+    );
+
     return (
         <Container className="top_padding">
             <Box display="flex" justifyContent="space-between" className="header_epeople" alignItems="center" mb={2}>
@@ -353,7 +678,7 @@ const EditCommunity = () => {
                         <Button variant="contained" color="success"
                             onClick={() => {
                                 handleButtonClick();
-                                setExpandedCommunity(null);
+                                setExpandedCommunities([]);
                             }} >
                             <img className="collection_icon" src={iconsImgs.collection} alt="collection" />
                             Create Collection
@@ -395,208 +720,10 @@ const EditCommunity = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                            {communities.map((community) => (
-                                <React.Fragment key={community.uuid}>
-                                    <TableRow sx={{
-                                        "&:hover": { backgroundColor: "#f0f0f0" },
-                                        cursor: "pointer",
-                                    }}
-                                        onClick={(e) => handleShowCollection(community.uuid, e)}
-                                    >
-                                        <TableCell>
-                                            {community.isEditing ? (
-                                                <TextField
-                                                    variant="outlined"
-                                                    size="small"
-                                                    value={community.editedTitle}
-                                                    onClick={(e => e.stopPropagation())}
-                                                    onChange={(e) => handleTitleChange(community.uuid, e.target.value)}
-                                                    fullWidth
-                                                />
-                                            ) : (
-                                                community.metadata["dc.title"]?.[0]?.value || 'No Title Available'
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                                                {community.isEditing ? (
-                                                    <Box >
-                                                        <IconButton
-                                                            className='btn_table'
-                                                            color="primary"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleSaveClick(community.uuid)
-                                                            }}
-                                                            title="Save"
-                                                        >
-                                                            <img className="table_icon" src={iconsImgs.save} alt="Save" />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            className='btn_table'
-                                                            color="secondary"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleCancelClick(community.uuid)
-                                                            }}
-                                                            title="Cancel"
-                                                        >
-                                                            <img className="table_icon" src={iconsImgs.cancel} alt="Cancel" />
-                                                        </IconButton>
-                                                    </Box>
-                                                ) : (
-                                                    <Box >
-                                                        <IconButton
-                                                            className='btn_table'
-                                                            color="primary"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleEditClick(community.uuid)
-                                                            }}
-                                                            title="Edit"
-                                                        >
-                                                            <img className="table_icon" src={iconsImgs.edit} alt="Edit" />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            className='btn_table_dlt'
-                                                            color="error"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDeleteClick(community.uuid)
-                                                            }}
-                                                            title="Delete"
-                                                        >
-                                                            <img className="table_icon" src={iconsImgs.remove} alt="Remove" />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            className='btn_table'
-                                                            color="secondary"
-                                                            onClick={() => handleCommunityPolicyClick(community.uuid)}
-                                                            title="CommunityPolicy"
-                                                        >
-                                                            <img className="table_icon" src={iconsImgs.access} alt="Remove" />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            className='btn_table'
-                                                            color="primary"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleShowCollection(community.uuid);
-                                                            }}
-                                                            title="View Collections"
-                                                        >
-                                                            {expandedCommunity === community.uuid ? <img className="table_icon" src={iconsImgs.minus} alt="Minus" /> : <img className="table_icon" src={iconsImgs.add} alt="Add" />}
-                                                        </IconButton>
-                                                    </Box>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow >
-                                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                                            <Collapse in={expandedCommunity === community.uuid} timeout="auto" unmountOnExit>
-                                                <Box margin={1}>
-                                                    <Typography variant="h6" gutterBottom component="div">
-                                                        Collections
-                                                    </Typography>
-                                                    <Table size="small">
-                                                        <TableHead>
-                                                            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                                                                <TableCell><b>Collection Name</b></TableCell>
-                                                                <TableCell><b>Actions</b></TableCell>
-                                                            </TableRow>
-                                                        </TableHead>
-                                                        <TableBody>
-                                                            {collections[community.uuid]?.map((collection) => (
-                                                                <TableRow
-                                                                    sx={{
-                                                                        "&:hover": { backgroundColor: "#f0f0f0" },
-                                                                        cursor: "pointer",
-                                                                    }}
-                                                                    key={collection.uuid}>
-                                                                    <TableCell>
-                                                                        {collection.isEditing ? (
-                                                                            <TextField
-                                                                                value={collection.editedTitle}
-                                                                                onChange={(e) => handleCollectionTitleChange(community.uuid, collection.uuid, e.target.value)}
-                                                                                fullWidth
-                                                                            />
-                                                                        ) : (
-                                                                            collection.metadata["dc.title"]?.[0]?.value || 'No Title Available'
-                                                                        )}
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Box>
-                                                                            {collection.isEditing ? (
-                                                                                <>
-                                                                                    <IconButton
-                                                                                        className='btn_table'
-                                                                                        color="primary"
-                                                                                        onClick={() => handleCollectionSaveClick(community.uuid, collection.uuid)}
-                                                                                        title="Save"
-                                                                                    >
-                                                                                        <img className="table_icon" src={iconsImgs.save} alt="Save" />
-                                                                                    </IconButton>
-                                                                                    <IconButton
-                                                                                        className='btn_table'
-                                                                                        color="secondary"
-                                                                                        onClick={() => handleCollectionCancelClick(community.uuid, collection.uuid)}
-                                                                                        title="Cancel"
-                                                                                    >
-                                                                                        <img className="table_icon" src={iconsImgs.cancel} alt="Cancel" />
-                                                                                    </IconButton>
-                                                                                </>
-                                                                            ) : (
-                                                                                <Box>
-                                                                                    <IconButton
-                                                                                        className='btn_table'
-                                                                                        color="primary"
-                                                                                        onClick={() => handleCollectionEditClick(community.uuid, collection.uuid)}
-                                                                                        title="Edit"
-                                                                                    >
-                                                                                        <img className="table_icon" src={iconsImgs.edit} alt="Edit" />
-                                                                                    </IconButton>
-                                                                                    <IconButton
-                                                                                        className='btn_table'
-                                                                                        color="error"
-                                                                                        onClick={() => handleCollectionDeleteClick(community.uuid, collection.uuid)}
-                                                                                        title="Delete"
-                                                                                    >
-                                                                                        <img className="table_icon" src={iconsImgs.remove} alt="Remove" />
-                                                                                    </IconButton>
-                                                                                    <IconButton
-                                                                                        className='btn_table'
-                                                                                        color="secondary"
-                                                                                        onClick={() => handleCollectionPolicyClick(community.uuid, collection.uuid)}
-                                                                                        title="CollectionPolicy"
-                                                                                    >
-                                                                                        <img className="table_icon" src={iconsImgs.access} alt="Policy" />
-                                                                                    </IconButton>
-                                                                                    <IconButton
-                                                                                        className='btn_table'
-                                                                                        color="primary"
-                                                                                        onClick={() => handleCollectionAssignRoleClick(collection.uuid)}
-                                                                                        title="Assign Role"
-                                                                                    >
-                                                                                        <img className="table_icon" src={iconsImgs.group_icon_black} alt="Assign Role" />
-                                                                                    </IconButton>
-                                                                                </Box>
-                                                                            )}
-                                                                        </Box>
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </Box>
-                                            </Collapse>
-                                        </TableCell>
-                                    </TableRow>
-                                </React.Fragment>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                                {communities.map((community) => renderCommunityRows(community))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
 
                 </>
             )}

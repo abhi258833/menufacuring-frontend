@@ -4,9 +4,9 @@ import { fetchItemBundles, fetchBitstreams } from '../../api/bitstream';
 import './Search.css';
 import PaginationComponent from '../../components/Pagination/PaginationComponent';
 import YearRangeSlider from '../Search/YearRangeSlider';
-import { sortOptions, resultsPerPageOptions, filterSections, metadataFields, FilterSection, SearchParams, FilterOption, } from '../../data/searchData';
-import { useNavigate } from 'react-router-dom';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, IconButton } from '@mui/material';
+import { sortOptions, resultsPerPageOptions, filterSections, metadataFields, FilterSection, SearchParams, FilterOption, AdvancedFilter, advancedSearchFields, } from '../../data/searchData';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, IconButton } from '@mui/material';
 import { FaTrashAlt, FaArrowRight } from 'react-icons/fa';
 import { iconsImgs } from '../../utils/images';
 import { siteConfig } from '../../data/data';
@@ -24,7 +24,9 @@ const Search: React.FC = () => {
     const [inputValue, setInputValue] = useState<string>(initialParams.query || '');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [scope, setScope] = useState<string | undefined>(initialParams.scope);
+    const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilter[]>(initialParams.advancedFilters || []);
     const [filters, setFilters] = useState<Record<string, any>>(initialParams.filters || {});
+    const [collectionScopeLabel, setCollectionScopeLabel] = useState<string | null>(initialParams.collectionName || initialParams.scope || null);
     const [facets, setFacets] = useState<Record<string, FilterOption[]>>({});
     const [hasFileCounts, setHasFileCounts] = useState({
         hasFileCount: 0,
@@ -57,6 +59,7 @@ const Search: React.FC = () => {
     );
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const location = useLocation();
 
     const { groupCategories, isAdministrator } = useUserGroups();
 
@@ -103,6 +106,17 @@ const Search: React.FC = () => {
         return option ? option.apiValue : 'score,DESC';
     };
 
+    const getAdvancedFilterLabel = (filter: AdvancedFilter) => {
+        const fieldLabel = advancedSearchFields.find((item) => item.id === filter.field)?.label || filter.field;
+        const operatorLabel = advancedSearchFields.find((item) => item.id === filter.field)?.operators.find((item) => item.apiValue === filter.operator)?.label || filter.operator;
+
+        if (operatorLabel.toLowerCase() === 'equals') {
+            return `${fieldLabel}: ${filter.value}`;
+        }
+
+        return `${fieldLabel} ${operatorLabel} ${filter.value}`;
+    };
+
     const fetchAllFacets = async (currentFilters: Record<string, any> = filters) => {
         try {
             const params: SearchParams = {
@@ -111,6 +125,7 @@ const Search: React.FC = () => {
                 size: size,
                 filters: currentFilters,
                 sort: getSortParam(),
+                advancedFilters: advancedFilters.length ? advancedFilters : undefined,
                 ...(scope ? { scope } : {}),
             };
 
@@ -140,6 +155,7 @@ const Search: React.FC = () => {
                 size: size,
                 filters: filters,
                 sort: getSortParam(),
+                advancedFilters: advancedFilters.length ? advancedFilters : undefined,
                 ...(scope ? { scope } : {}),
             };
 
@@ -174,6 +190,8 @@ const Search: React.FC = () => {
         resetPage: boolean = false,
         sort: string = getSortParam(),
         query: string = inputValue,
+        currentAdvancedFilters: AdvancedFilter[] = advancedFilters,
+        currentScope: string | undefined = scope,
     ) => {
         setIsLoading(true);
         try {
@@ -184,7 +202,8 @@ const Search: React.FC = () => {
                 size: itemsPerPage,
                 sort: sort,
                 filters: currentFilters,
-                ...(scope ? { scope } : {})
+                advancedFilters: currentAdvancedFilters.length ? currentAdvancedFilters : undefined,
+                ...(currentScope ? { scope: currentScope } : {})
             };
 
             updateUrlWithSearchParams(params);
@@ -193,6 +212,7 @@ const Search: React.FC = () => {
 
             setSearchResults(data.results);
             setTotalData(data.totalElements);
+            setAdvancedFilters(currentAdvancedFilters);
             if (resetPage) {
                 setPage(1);
             }
@@ -206,8 +226,28 @@ const Search: React.FC = () => {
     };
 
     useEffect(() => {
-        handleSearch();
-    }, []);
+        const params = parseSearchParamsFromUrl();
+
+        setInputValue(params.query || '');
+        setScope(params.scope);
+        setAdvancedFilters(params.advancedFilters || []);
+        setFilters(params.filters || {});
+        setPage((params.page ?? 0) + 1 || 1);
+        setSize(params.size || resultsPerPageOptions[3].value);
+        setCollectionScopeLabel(params.collectionName || params.scope || null);
+
+        const nextSort = params.sort || getSortParam();
+        handleSearch(
+            params.filters || {},
+            (params.page ?? 0) + 1 || 1,
+            params.size || resultsPerPageOptions[3].value,
+            false,
+            nextSort,
+            params.query || '',
+            params.advancedFilters || [],
+            params.scope
+        );
+    }, [location.search]);
 
 
 
@@ -282,6 +322,11 @@ const Search: React.FC = () => {
         return null;
     };
 
+    const getThumbnailBitstream = (uuid?: string) => {
+        if (!uuid) return null;
+        return thumbnailsByItem[uuid]?.[0] || null;
+    };
+
     const handlePageChange = (newPage: number) => {
         setPage(newPage);
         handleSearch(filters, newPage, size, false, getSortParam());
@@ -290,7 +335,21 @@ const Search: React.FC = () => {
     const resetFilters = () => {
         const newFilters = {};
         setFilters(newFilters);
+        setAdvancedFilters([]);
         handleSearch(newFilters, 1, size, true);
+    };
+
+    const handleRemoveAdvancedFilter = (filterIndex: number) => {
+        const nextAdvancedFilters = advancedFilters.filter((_, index) => index !== filterIndex);
+
+        setAdvancedFilters(nextAdvancedFilters);
+        handleSearch(filters, 1, size, true, getSortParam(), inputValue, nextAdvancedFilters, scope);
+    };
+
+    const handleClearCollectionScope = () => {
+        setScope(undefined);
+        setCollectionScopeLabel(null);
+        handleSearch(filters, 1, size, true, getSortParam(), inputValue, advancedFilters, undefined);
     };
 
     const toggleSection = (sectionId: string) => {
@@ -522,7 +581,7 @@ const Search: React.FC = () => {
                                 <SearchBar
                                     value={inputValue}
                                     onChange={setInputValue}
-                                    onSubmit={(query) => handleSearch(filters, 1, size, true, getSortParam(), query ?? inputValue)}
+                                    onSubmit={(query) => handleSearch(filters, 1, size, true, getSortParam(), query ?? inputValue, advancedFilters)}
                                     placeholder="Search the repository..."
                                     variant="page"
                                     fullWidth
@@ -531,6 +590,48 @@ const Search: React.FC = () => {
                             </Grid>
                         </Grid>
                     </div>
+
+                    {(collectionScopeLabel || advancedFilters.length > 0) && (
+                        <Box
+                            className="advanced-filters-summary"
+                            sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 1,
+                                mb: 2,
+                                mt: 1,
+                                alignItems: 'center',
+                            }}
+                        >
+                            {collectionScopeLabel && (
+                                <Chip
+                                    label={`Collection: ${collectionScopeLabel}`}
+                                    onDelete={handleClearCollectionScope}
+                                    sx={{
+                                        borderRadius: 999,
+                                        bgcolor: '#eef2ff',
+                                        color: '#3730a3',
+                                        border: '1px solid #c7d2fe',
+                                        fontWeight: 600,
+                                    }}
+                                />
+                            )}
+                            {advancedFilters.map((filter, index) => (
+                                <Chip
+                                    key={`${filter.field}-${filter.operator}-${filter.value}-${index}`}
+                                    label={getAdvancedFilterLabel(filter)}
+                                    onDelete={() => handleRemoveAdvancedFilter(index)}
+                                    sx={{
+                                        borderRadius: 999,
+                                        bgcolor: '#fff7ed',
+                                        color: '#92400e',
+                                        border: '1px solid #fdba74',
+                                        fontWeight: 600,
+                                    }}
+                                />
+                            ))}
+                        </Box>
+                    )}
 
                     <div className="col-12">
                         <Grid container alignItems="center" className="results-header">
@@ -597,6 +698,7 @@ const Search: React.FC = () => {
 
                                         const abstract = metadata?.["dc.description.abstract"]?.[0]?.value;
                                         const date = metadata?.["dc.date.created"]?.[0]?.value;
+                                        const thumbnailBitstream = getThumbnailBitstream(uuid);
 
                                         const assetId = metadata?.["dc.assetid"]?.[0]?.value;
                                         const invoiceNumber = metadata?.["dc.invoiceNumber"]?.[0]?.value;
@@ -640,7 +742,6 @@ const Search: React.FC = () => {
                                                         position: "relative",
                                                     }}
                                                 >
-                                                    {/* Colored Sidebar */}
                                                     <div
                                                         style={{
                                                             width: "100px",
@@ -670,10 +771,8 @@ const Search: React.FC = () => {
                                                         >
                                                             <i className="fas fa-cube"></i>
                                                         </div>
-
                                                     </div>
 
-                                                    {/* Thumbnail & Content */}
                                                     <div
                                                         style={{
                                                             display: "flex",
@@ -682,26 +781,22 @@ const Search: React.FC = () => {
                                                             flex: 1,
                                                         }}
                                                     >
-                                                        {thumbnailsByItem[result._embedded?.indexableObject?.uuid]
-                                                            ?.filter(bitstream => /\.(jpe?g|png)$/i.test(bitstream.name))
-                                                            .slice(0, 1)
-                                                            .map(bitstream => (
-                                                                <SecureImage
-                                                                    key={bitstream.uuid}
-                                                                    uuid={bitstream.uuid}
-                                                                    className="thumbnail-img_list img-fluid"
-                                                                    style={{
-                                                                        maxHeight: '100px',
-                                                                        maxWidth: '100px',
-                                                                        marginRight: '20px',
-                                                                        borderRadius: '8px',
-                                                                        objectFit: 'cover'
-                                                                    }}
-                                                                    alt="Thumbnail"
-                                                                />
-                                                            ))}
+                                                        {thumbnailBitstream && (
+                                                            <SecureImage
+                                                                key={thumbnailBitstream.uuid}
+                                                                uuid={thumbnailBitstream.uuid}
+                                                                className="thumbnail-img_list img-fluid"
+                                                                style={{
+                                                                    maxHeight: '100px',
+                                                                    maxWidth: '100px',
+                                                                    marginRight: '20px',
+                                                                    borderRadius: '8px',
+                                                                    objectFit: 'cover'
+                                                                }}
+                                                                alt="Thumbnail"
+                                                            />
+                                                        )}
 
-                                                        {/* Right Text Section */}
                                                         <div style={{ flex: 1 }}>
                                                             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                                                                 <span style={{
@@ -726,79 +821,26 @@ const Search: React.FC = () => {
                                                                     {title}
                                                                 </h3>
                                                             </div>
+
                                                             <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", fontSize: "14px", color: "#555", fontFamily: "inter, sans-serif" }}>
-
-                                                                {assetId && (
-                                                                    <span><strong>Asset ID:</strong> {assetId}</span>
-                                                                )}
-
-                                                                {invoiceNumber && (
-                                                                    <span><strong>Invoice Number:</strong> {invoiceNumber}</span>
-                                                                )}
-
-                                                                {docType && (
-                                                                    <span><strong>Document Type:</strong> {docType}</span>
-                                                                )}
-
-                                                                {vendorName && (
-                                                                    <span><strong>Vendor Name:</strong> {vendorName}</span>
-                                                                )}
-
-                                                                {issuedDate && (
-                                                                    <span><strong>Issued Date:</strong> {issuedDate}</span>
-                                                                )}
-
-                                                                {date && (
-                                                                    <span><strong>Date Issued:</strong> {date}</span>
-                                                                )}
-
-                                                                {empName && (
-                                                                    <span><strong>Employee Name:</strong> {empName}</span>
-                                                                )}
-
-                                                                {empId && (
-                                                                    <span><strong>Employee ID:</strong> {empId}</span>
-                                                                )}
-
-                                                                {hrDocNo && (
-                                                                    <span><strong>HR Document No:</strong> {hrDocNo}</span>
-                                                                )}
-
-                                                                {contractStatus && (
-                                                                    <span><strong>Contract Status:</strong> {contractStatus}</span>
-                                                                )}
-
-                                                                {contractOwner && (
-                                                                    <span><strong>Contract Owner:</strong> {contractOwner}</span>
-                                                                )}
-
-                                                                {contractValue && (
-                                                                    <span><strong>Contract Value:</strong> {contractValue}</span>
-                                                                )}
-
-                                                                {organization && (
-                                                                    <span><strong>Organization:</strong> {organization}</span>
-                                                                )}
-
-                                                                {material && (
-                                                                    <span><strong>Material:</strong> {material}</span>
-                                                                )}
-
-                                                                {paymentTerms && (
-                                                                    <span><strong>Payment Terms:</strong> {paymentTerms}</span>
-                                                                )}
-
-
-
-
-
+                                                                {assetId && <span><strong>Asset ID:</strong> {assetId}</span>}
+                                                                {invoiceNumber && <span><strong>Invoice Number:</strong> {invoiceNumber}</span>}
+                                                                {docType && <span><strong>Document Type:</strong> {docType}</span>}
+                                                                {vendorName && <span><strong>Vendor Name:</strong> {vendorName}</span>}
+                                                                {issuedDate && <span><strong>Issued Date:</strong> {issuedDate}</span>}
+                                                                {date && <span><strong>Date Issued:</strong> {date}</span>}
+                                                                {empName && <span><strong>Employee Name:</strong> {empName}</span>}
+                                                                {empId && <span><strong>Employee ID:</strong> {empId}</span>}
+                                                                {hrDocNo && <span><strong>HR Document No:</strong> {hrDocNo}</span>}
+                                                                {contractStatus && <span><strong>Contract Status:</strong> {contractStatus}</span>}
+                                                                {contractOwner && <span><strong>Contract Owner:</strong> {contractOwner}</span>}
+                                                                {contractValue && <span><strong>Contract Value:</strong> {contractValue}</span>}
+                                                                {organization && <span><strong>Organization:</strong> {organization}</span>}
+                                                                {material && <span><strong>Material:</strong> {material}</span>}
+                                                                {paymentTerms && <span><strong>Payment Terms:</strong> {paymentTerms}</span>}
                                                             </div>
-
-
-
                                                         </div>
 
-                                                        {/* Delete Button */}
                                                         {(isAdministrator || isAdmingroup) && (
                                                             <Box
                                                                 sx={{
@@ -838,6 +880,7 @@ const Search: React.FC = () => {
                                         const type = result._embedded?.indexableObject?.type;
                                         const title = metadata?.['dc.title']?.[0]?.value || metadata?.['dc.uhid']?.[0]?.value || 'Unknown Title';
                                         const uuid = result._embedded?.indexableObject?.uuid;
+
                                         const abstract = getMetadataValue(metadata, metadataFields.abstract);
                                         const date = getMetadataValue(metadata, metadataFields.date);
                                         const author = getMetadataValue(metadata, metadataFields.author);
@@ -858,6 +901,7 @@ const Search: React.FC = () => {
                                         const paymentTerms = getMetadataValue(metadata, metadataFields.PaymentTerms);
                                         const quantity = getMetadataValue(metadata, metadataFields.Quantity);
                                         const displayType = entity || type;
+                                        const thumbnailBitstream = getThumbnailBitstream(uuid);
 
                                         const handleTitleClick = () => {
                                             if (uuid) {
@@ -920,9 +964,48 @@ const Search: React.FC = () => {
                                                         <div
                                                             className="thumbnail_panel"
                                                             style={{
-                                                                backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${bgImage})`,
+                                                                position: 'relative',
+                                                                overflow: 'hidden',
                                                             }}
                                                         >
+                                                            {getThumbnailBitstream(uuid) ? (
+                                                                <SecureImage
+                                                                    key={getThumbnailBitstream(uuid)!.uuid}
+                                                                    uuid={getThumbnailBitstream(uuid)!.uuid}
+                                                                    className="thumbnail-panel-image"
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        inset: 0,
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        objectFit: 'cover',
+                                                                    }}
+                                                                    alt={title || 'Thumbnail'}
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        inset: 0,
+                                                                        backgroundImage: `url(${bgImage})`,
+                                                                        backgroundSize: 'cover',
+                                                                        backgroundPosition: 'center',
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    inset: 0,
+                                                                    background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5))',
+                                                                }}
+                                                            />
+                                                            <div
+                                                                style={{
+                                                                    position: 'relative',
+                                                                    zIndex: 1,
+                                                                }}
+                                                            >
                                                             {assetId && (
                                                                 <div>
                                                                     <strong>Asset ID:</strong> {assetId}
@@ -1060,7 +1143,7 @@ const Search: React.FC = () => {
                                                                     <FaArrowRight className="itemh_icon" style={{ color: '#ffffff', fontSize: '18px' }} />
                                                                 </IconButton>
                                                             </div>
-
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -1074,8 +1157,7 @@ const Search: React.FC = () => {
                                                 </div>
                                             </Grid>
                                         );
-                                    }
-                                    )
+                                    })
                                 )}
                             </Grid>
                         </>

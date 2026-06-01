@@ -109,6 +109,7 @@ export const parseSearchParamsFromUrl = (): SearchParams => {
     query: params.get('query') || undefined,
     sort: params.get('sort') || undefined,
     scope: params.get('scope') || undefined,
+    resourceType: params.get('resourceType') || undefined,
     communityName: params.get('communityName') || undefined,
     collectionName: params.get('collectionName') || undefined,
     filters: Object.keys(filters).length ? filters : undefined,
@@ -134,6 +135,10 @@ export const updateUrlWithSearchParams = (params: SearchParams) => {
 
   if (params.scope) {
     urlParams.set('scope', params.scope);
+  }
+
+  if (params.resourceType) {
+    urlParams.set('resourceType', params.resourceType);
   }
 
   if (params.communityName) {

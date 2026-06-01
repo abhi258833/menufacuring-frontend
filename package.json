@@ -38,6 +38,7 @@
     "dayjs": "^1.11.13",
     "express": "^4.21.2",
     "formik": "^2.4.6",
+    "framer-motion": "^12.40.0",
     "html2canvas": "^1.4.1",
     "http-proxy-middleware": "^3.0.3",
     "https-browserify": "^1.0.0",

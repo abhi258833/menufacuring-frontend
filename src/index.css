@@ -24,3 +24,7 @@ code {
 .css-1blp12k-MuiInputBase-root-MuiOutlinedInput-root {
   margin-bottom: 16.5px !important;
 }
+
+.advanced-search-dialog .css-1blp12k-MuiInputBase-root-MuiOutlinedInput-root {
+  margin-bottom: 0 !important;
+}
