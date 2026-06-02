@@ -4,10 +4,8 @@ import { fetchBitstreams, fetchItemBundles } from '../../api/bitstream';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import './bookDetail.css';
 import { Bitstream, BookDetailsData } from '../../data/bookDetail';
-import { siteConfig } from '../../data/data';
 import { downloadPDF } from '../../api/bitstream';
 import { useAuth } from '../../contexts/AuthContext';
-import { iconsImgs } from '../../utils/images';
 import { IconButton, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -30,7 +28,6 @@ const BookDetails: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [originalBitstreams, setOriginalBitstreams] = useState<Bitstream[]>([]);
-    const [thumbnailBitstreams, setThumbnailBitstreams] = useState<Bitstream[]>([]);
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const { isAdministrator, groupCategories } = useUserGroups();
@@ -73,11 +70,8 @@ const BookDetails: React.FC = () => {
                     const bundles = await fetchItemBundles(id);
                     if (bundles.length > 0) {
                         const originalBundle = bundles.find(b => b.name === 'ORIGINAL') || bundles[0];
-                        const thumbnailBundle = bundles.find(b => b.name === 'THUMBNAIL') || bundles[0];
                         const originalbitstreamsData = await fetchBitstreams(originalBundle.uuid);
-                        const thumbnailbitstreamsData = await fetchBitstreams(thumbnailBundle.uuid);
                         setOriginalBitstreams(originalbitstreamsData);
-                        setThumbnailBitstreams(thumbnailbitstreamsData);
                     }
                 }
             } catch (error) {
@@ -143,18 +137,13 @@ const BookDetails: React.FC = () => {
                 </div>
                 <div className='row'>
                     <div className='col-lg-4 col-md-12 col-12 text-center mb-3'>
-                        {originalBitstreams && originalBitstreams.length > 0 ? (
-                            originalBitstreams
-                                .filter(bitstream => /\.pdf$/i.test(bitstream.name))
-                                .slice(0, 1)
-                                .map(bitstream => (
-                                    <SecureImage
-                                        key={bitstream.uuid}
-                                        uuid={bitstream.uuid}
-                                        className="thumbnail-img img-fluid"
-                                        alt="PDF First Page"
-                                    />
-                                ))
+                        {id ? (
+                            <SecureImage
+                                key={id}
+                                srcPath={`/api/thumbnails/${id}`}
+                                className="thumbnail-img img-fluid"
+                                alt={title || 'Item thumbnail'}
+                            />
                         ) : (
                             <div className="placeholder-thumbnail">
                                 <p>No thumbnail available</p>

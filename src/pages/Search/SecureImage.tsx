@@ -4,39 +4,49 @@ import * as pdfjsLib from 'pdfjs-dist';
 import 'pdfjs-dist/build/pdf.worker.entry';
 
 type SecureImageProps = {
-  uuid: string;
+  uuid?: string;
+  srcPath?: string;
   className?: string;
   style?: React.CSSProperties;
   alt?: string;
 };
 
-const SecureImage: React.FC<SecureImageProps> = ({ uuid, className, style, alt }) => {
+const SecureImage: React.FC<SecureImageProps> = ({ uuid, srcPath, className, style, alt }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!uuid && !srcPath) {
+      setImageUrl(null);
+      return;
+    }
+
+    let objectUrl: string | null = null;
+
     const fetchAndRender = async () => {
       const authToken = localStorage.getItem('authToken');
       const csrfToken = localStorage.getItem('csrfToken');
 
       const headers: Record<string, string> = {};
-      if (authToken) headers['Authorization'] = authToken;
+      if (authToken) headers['Authorization'] = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
       if (csrfToken) headers['X-XSRF-TOKEN'] = csrfToken;
 
       try {
-        // Fetch the bitstream (could be image or pdf)
-        const response = await fetch(`${siteConfig.apiEndpoint}/api/core/bitstreams/${uuid}/content`, {
+        const requestUrl = srcPath
+          ? `${siteConfig.apiEndpoint}${srcPath}`
+          : `${siteConfig.apiEndpoint}/api/core/bitstreams/${uuid}/content`;
+
+        const response = await fetch(requestUrl, {
           method: 'GET',
           headers,
         });
-        if (!response.ok) throw new Error('Failed to fetch bitstream');
+        if (!response.ok) throw new Error('Failed to fetch image');
         const blob = await response.blob();
 
         if (blob.type === 'application/pdf') {
-          // ✅ Render first page of PDF
           const pdf = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
           const page = await pdf.getPage(1);
 
-          const scale = 2; // Higher = higher quality
+          const scale = 2;
           const viewport = page.getViewport({ scale });
 
           const canvas = document.createElement('canvas');
@@ -46,29 +56,30 @@ const SecureImage: React.FC<SecureImageProps> = ({ uuid, className, style, alt }
 
           await page.render({ canvasContext: context, viewport }).promise;
 
-          // Convert canvas to Blob URL
           canvas.toBlob((imgBlob) => {
             if (imgBlob) {
-              const url = URL.createObjectURL(imgBlob);
-              setImageUrl(url);
+              objectUrl = URL.createObjectURL(imgBlob);
+              setImageUrl(objectUrl);
             }
           }, 'image/png');
         } else {
-          // ✅ Otherwise just display as image (jpg/png)
-          const url = URL.createObjectURL(blob);
-          setImageUrl(url);
+          objectUrl = URL.createObjectURL(blob);
+          setImageUrl(objectUrl);
         }
       } catch (error) {
         console.error('Error loading secure image:', error);
+        setImageUrl(null);
       }
     };
 
     fetchAndRender();
 
     return () => {
-      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
-  }, [uuid]);
+  }, [srcPath, uuid]);
 
   if (!imageUrl) return null;
 

@@ -61,10 +61,10 @@ const Home = () => {
     checkAccess();
   }, []);
 
-  const handleCardClick = (collectionId: string) => {
+  const handleCardClick = (collectionId: string, collectionName: string) => {
     if (isLoggedIn) {
       navigate(
-        `/adminSearch?page=0&size=10&sort=score%2CDESC&scope=${collectionId}`
+        `/adminSearch?page=0&size=10&sort=score%2CDESC&scope=${collectionId}&collectionName=${encodeURIComponent(collectionName)}`
       );
     } else {
       navigate("/login");
@@ -147,7 +147,7 @@ const Home = () => {
               <div className="department-card-wrapper" key={index}>
                 <div
                   className={`card ${dept.class} ${!isLoggedIn ? "disabled-card" : ""}`}
-                  onClick={() => handleCardClick(dept.collectionId)}
+                  onClick={() => handleCardClick(dept.collectionId, dept.title)}
                   style={{ cursor: isLoggedIn ? "pointer" : "not-allowed" }}
                 >
                   <div className="card-content">

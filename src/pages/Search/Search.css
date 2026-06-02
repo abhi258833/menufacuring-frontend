@@ -406,7 +406,7 @@
     box-shadow: none; /* remove inner shadow so outer card handles shadow */
     border: 1px solid #ccc;
     width: 100%;
-    height: 240px;
+    height: 288px;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;

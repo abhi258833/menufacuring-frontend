@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { searchObjects, fetchFacets, fetchHasFileCounts, parseSearchParamsFromUrl, updateUrlWithSearchParams, fetchFacet, } from '../../api/searchApi';
-import { fetchItemBundles, fetchBitstreams } from '../../api/bitstream';
 import './Search.css';
 import PaginationComponent from '../../components/Pagination/PaginationComponent';
 import YearRangeSlider from '../Search/YearRangeSlider';
@@ -9,8 +8,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, IconButton } from '@mui/material';
 import { FaTrashAlt, FaArrowRight } from 'react-icons/fa';
 import { iconsImgs } from '../../utils/images';
-import { siteConfig } from '../../data/data';
-import { Bitstream } from '../../data/bookDetail';
 import Loader from '../loader/loader';
 import SecureImage from './SecureImage';
 import { Group } from '../../api/group';
@@ -39,7 +36,6 @@ const Search: React.FC = () => {
             return acc;
         }, {} as Record<string, boolean>)
     );
-    const startTime = performance.now(); // Start timer
     const [loadingTime, setLoadingTime] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [page, setPage] = useState<number>((initialParams.page ?? 0) + 1 || 1);
@@ -47,9 +43,6 @@ const Search: React.FC = () => {
     const [totalData, setTotalData] = useState<number>(0);
     const [sortOption, setSortOption] = useState(sortOptions[0].value);
     const [isLoading, setIsLoading] = useState(false);
-    const [originalBitstreams, setOriginalBitstreams] = useState<Bitstream[]>([]);
-    const [thumbnailBitstreams, setThumbnailBitstreams] = useState<Bitstream[]>([]);
-    const [thumbnailsByItem, setThumbnailsByItem] = useState<Record<string, Bitstream[]>>({});
     const navigate = useNavigate();
     const [facetPagination, setFacetPagination] = useState<Record<string, { page: number, size: number }>>(
         filterSections.reduce((acc, section) => {
@@ -194,6 +187,7 @@ const Search: React.FC = () => {
         currentScope: string | undefined = scope,
     ) => {
         setIsLoading(true);
+        const requestStartTime = performance.now();
         try {
             const pageToFetch = resetPage ? 1 : currentPage;
             const params: SearchParams = {
@@ -221,6 +215,8 @@ const Search: React.FC = () => {
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
+            const requestEndTime = performance.now();
+            setLoadingTime(((requestEndTime - requestStartTime) / 1000).toFixed(2));
             setIsLoading(false);
         }
     };
@@ -278,53 +274,11 @@ const Search: React.FC = () => {
             return newFilters;
         });
     };
-    useEffect(() => {
-        const fetchThumbnails = async () => {
-            const startTime = performance.now(); // Start timer
-
-            try {
-                if (searchResults.length > 0) {
-                    const thumbnails: Record<string, Bitstream[]> = {};
-
-                    for (const result of searchResults) {
-                        const uuid = result._embedded?.indexableObject?.uuid;
-                        if (!uuid) continue;
-
-                        const bundles = await fetchItemBundles(uuid);
-                        if (bundles.length > 0) {
-                            const originalBundle = bundles.find(b => b.name === 'ORIGINAL') || bundles[0];
-                            const thumbnailBundle = bundles.find(b => b.name === 'THUMBNAIL') || bundles[0];
-                            const originalbitstreamsData = await fetchBitstreams(originalBundle.uuid);
-                            const thumbnailbitstreamsData = await fetchBitstreams(thumbnailBundle.uuid);
-                            setOriginalBitstreams(originalbitstreamsData);
-                            setThumbnailBitstreams(thumbnailbitstreamsData);
-                            thumbnails[uuid] = thumbnailbitstreamsData;
-                        }
-                    }
-
-                    setThumbnailsByItem(thumbnails);
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                const endTime = performance.now(); // End timer
-                const timeInSeconds = ((endTime - startTime) / 1000).toFixed(2);
-                setLoadingTime(timeInSeconds); // Save to state for UI
-            }
-        };
-
-        fetchThumbnails();
-    }, [searchResults]);
     const getMetadataValue = (metadata: any, field: string): string | null => {
         if (metadata && metadata[field] && metadata[field].length > 0) {
             return metadata[field][0].value;
         }
         return null;
-    };
-
-    const getThumbnailBitstream = (uuid?: string) => {
-        if (!uuid) return null;
-        return thumbnailsByItem[uuid]?.[0] || null;
     };
 
     const handlePageChange = (newPage: number) => {
@@ -698,8 +652,6 @@ const Search: React.FC = () => {
 
                                         const abstract = metadata?.["dc.description.abstract"]?.[0]?.value;
                                         const date = metadata?.["dc.date.created"]?.[0]?.value;
-                                        const thumbnailBitstream = getThumbnailBitstream(uuid);
-
                                         const assetId = metadata?.["dc.assetid"]?.[0]?.value;
                                         const invoiceNumber = metadata?.["dc.invoiceNumber"]?.[0]?.value;
                                         const docType = metadata?.["dc.DocType"]?.[0]?.value;
@@ -781,10 +733,10 @@ const Search: React.FC = () => {
                                                             flex: 1,
                                                         }}
                                                     >
-                                                        {thumbnailBitstream && (
+                                                        {uuid && (
                                                             <SecureImage
-                                                                key={thumbnailBitstream.uuid}
-                                                                uuid={thumbnailBitstream.uuid}
+                                                                key={uuid}
+                                                                srcPath={`/api/thumbnails/${uuid}`}
                                                                 className="thumbnail-img_list img-fluid"
                                                                 style={{
                                                                     maxHeight: '100px',
@@ -901,7 +853,6 @@ const Search: React.FC = () => {
                                         const paymentTerms = getMetadataValue(metadata, metadataFields.PaymentTerms);
                                         const quantity = getMetadataValue(metadata, metadataFields.Quantity);
                                         const displayType = entity || type;
-                                        const thumbnailBitstream = getThumbnailBitstream(uuid);
 
                                         const handleTitleClick = () => {
                                             if (uuid) {
@@ -968,10 +919,10 @@ const Search: React.FC = () => {
                                                                 overflow: 'hidden',
                                                             }}
                                                         >
-                                                            {getThumbnailBitstream(uuid) ? (
+                                                            {uuid ? (
                                                                 <SecureImage
-                                                                    key={getThumbnailBitstream(uuid)!.uuid}
-                                                                    uuid={getThumbnailBitstream(uuid)!.uuid}
+                                                                    key={uuid}
+                                                                    srcPath={`/api/thumbnails/${uuid}`}
                                                                     className="thumbnail-panel-image"
                                                                     style={{
                                                                         position: 'absolute',
@@ -1004,6 +955,9 @@ const Search: React.FC = () => {
                                                                 style={{
                                                                     position: 'relative',
                                                                     zIndex: 1,
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    minHeight: '100%',
                                                                 }}
                                                             >
                                                             {assetId && (
