@@ -6,16 +6,19 @@ import './bookDetail.css';
 import { Bitstream, BookDetailsData } from '../../data/bookDetail';
 import { downloadPDF } from '../../api/bitstream';
 import { useAuth } from '../../contexts/AuthContext';
-import { IconButton, Tooltip } from '@mui/material';
+import { Button, IconButton, Stack, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import DownloadIcon from '@mui/icons-material/Download';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SummarizeOutlinedIcon from '@mui/icons-material/SummarizeOutlined';
+import QuestionAnswerOutlinedIcon from '@mui/icons-material/QuestionAnswerOutlined';
 import Loader from '../loader/loader';
 import SecureImage from '../Search/SecureImage';
 import { useUserGroups } from '../../contexts/groupTypeContext';
 import { getowningCollection } from '../../api/item';
+import AIAssistant, { parseHandleFromUri } from '../../app/item-page/ai-assistant/AIAssistant';
 
 
 
@@ -32,6 +35,8 @@ const BookDetails: React.FC = () => {
     const { isAuthenticated } = useAuth();
     const { isAdministrator, groupCategories } = useUserGroups();
     const [collection, setCollection] = useState<any>(null);
+    const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+    const [chatModalOpen, setChatModalOpen] = useState(false);
     const fetchOwningCollection = async (itemId: string) => {
         try {
             const collection = await getowningCollection(itemId);
@@ -109,6 +114,33 @@ const BookDetails: React.FC = () => {
     const status = getMetadataValue('dc.Status');
     const totalValue = getMetadataValue('dc.TotalValue');
     const unitPrice = getMetadataValue('dc.UnitPrice');
+    const identifierUri = getMetadataValue('dc.identifier.uri');
+    const itemHandle = item?.handle || parseHandleFromUri(identifierUri);
+
+    const renderAIActions = () => (
+        <Stack direction="row" spacing={1} flexWrap="nowrap" useFlexGap>
+            <Button
+                variant="contained"
+                size="small"
+                startIcon={<SummarizeOutlinedIcon />}
+                onClick={() => setSummaryModalOpen(true)}
+                disabled={!itemHandle}
+                className="ai-action-btn"
+            >
+                Summary
+            </Button>
+            <Button
+                variant="outlined"
+                size="small"
+                startIcon={<QuestionAnswerOutlinedIcon />}
+                onClick={() => setChatModalOpen(true)}
+                disabled={!itemHandle}
+                className="ai-action-btn ai-action-btn-outlined"
+            >
+                Ask AI
+            </Button>
+        </Stack>
+    );
 
     if (isLoading) return <Loader />;
     if (error) return <h3>{error}</h3>;
@@ -291,31 +323,35 @@ const BookDetails: React.FC = () => {
                                                 <tr>
                                                     <th>Action</th>
                                                     <td>
-                                                        <ul className='list-unstyled'>
-                                                            {pdfBitstreams.map(bitstream => (
-                                                                <li key={bitstream.uuid} className='mb-2'>
-                                                                    <Tooltip title="View PDF">
-                                                                        <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${encodeURIComponent(bitstream.uuid)}&itemId=${encodeURIComponent(id ?? '')}${keyword ? `&keyword=${keyword}` : ''}`, '_blank')}>
-                                                                            <VisibilityIcon fontSize="small" />
-                                                                        </IconButton>
-                                                                    </Tooltip>
-
-                                                                    <Tooltip title="View In Flip PDF">
-                                                                        <IconButton className="action-icon-btn" onClick={() => window.open(`/flip-book-viewer?uuid=${bitstream.uuid}&itemId=${id}`, '_blank')}>
-                                                                            <MenuBookIcon fontSize="small" />
-                                                                        </IconButton>
-                                                                    </Tooltip>
-
-                                                                    {isAuthenticated && (
-                                                                        <Tooltip title="Download PDF">
-                                                                            <IconButton className="action-icon-btn" onClick={() => downloadPDF(bitstream.uuid, bitstream.name, id || '')}>
-                                                                                <DownloadIcon fontSize="small" />
+                                                        <div className="action-row-content">
+                                                            <div className="action-icon-group">
+                                                                {pdfBitstreams.map(bitstream => (
+                                                                    <div key={bitstream.uuid} className='mb-2'>
+                                                                        <Tooltip title="View PDF">
+                                                                            <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${encodeURIComponent(bitstream.uuid)}&itemId=${encodeURIComponent(id ?? '')}&name=${encodeURIComponent(bitstream.name)}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`, '_blank', 'noopener,noreferrer')}>
+                                                                                <VisibilityIcon fontSize="small" />
                                                                             </IconButton>
                                                                         </Tooltip>
-                                                                    )}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
+
+                                                                        <Tooltip title="View In Flip PDF">
+                                                                            <IconButton className="action-icon-btn" onClick={() => window.open(`/flip-book-viewer?uuid=${bitstream.uuid}&itemId=${id}`, '_blank')}>
+                                                                                <MenuBookIcon fontSize="small" />
+                                                                            </IconButton>
+                                                                        </Tooltip>
+
+                                                                        {isAuthenticated && (
+                                                                            <Tooltip title="Download PDF">
+                                                                                <IconButton className="action-icon-btn" onClick={() => downloadPDF(bitstream.uuid, bitstream.name, id || '')}>
+                                                                                    <DownloadIcon fontSize="small" />
+                                                                                </IconButton>
+                                                                            </Tooltip>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="action-divider" />
+                                                            {renderAIActions()}
+                                                        </div>
                                                     </td>
                                                 </tr>
 
@@ -325,6 +361,14 @@ const BookDetails: React.FC = () => {
                                     // If multiple PDFs, show table format
                                     return (
                                         <>
+                                            <tr>
+                                                <th>Action</th>
+                                                <td colSpan={2}>
+                                                    <div className="action-row-content">
+                                                        {renderAIActions()}
+                                                    </div>
+                                                </td>
+                                            </tr>
                                             <tr>
                                                 <th>PDF Files</th>
                                                 <th>Actions</th>
@@ -337,7 +381,7 @@ const BookDetails: React.FC = () => {
                                                     <td className="action-buttons-cell">
                                                         <div className="d-flex flex-wrap gap-2">
                                                             <Tooltip title="View PDF">
-                                                                <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${bitstream.uuid}${keyword ? `&keyword=${keyword}` : ''}`, '_blank')}>
+                                                                <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${bitstream.uuid}&name=${encodeURIComponent(bitstream.name)}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`, '_blank', 'noopener,noreferrer')}>
                                                                     <VisibilityIcon fontSize="small" />
                                                                 </IconButton>
                                                             </Tooltip>
@@ -366,6 +410,19 @@ const BookDetails: React.FC = () => {
                         </table>
                     </div>
                 </div>
+
+                <AIAssistant
+                    handle={itemHandle}
+                    mode="summary"
+                    open={summaryModalOpen}
+                    onClose={() => setSummaryModalOpen(false)}
+                />
+                <AIAssistant
+                    handle={itemHandle}
+                    mode="chat"
+                    open={chatModalOpen}
+                    onClose={() => setChatModalOpen(false)}
+                />
 
             </div>
         </>

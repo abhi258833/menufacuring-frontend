@@ -7,6 +7,7 @@ export interface MetadataEntry {
   }
   
   export interface BookDetailsData {
+    handle?: string;
     metadata: {
         'dc.contributor.author'?: MetadataEntry[];
         'dc.date.issued'?: MetadataEntry[];

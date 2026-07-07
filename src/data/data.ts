@@ -2,7 +2,6 @@ import { iconsImgs } from "../utils/images";
 import type { Group, GroupCategories } from "../contexts/groupTypeContext";
 
 
-
 export interface NavigationLink {
   id: number;
   title: string;
@@ -14,14 +13,11 @@ export interface NavigationLink {
 }
 
 
-
 export const siteConfig = {
   name: "Optimark",
   logo: "/assets/logo.png",
   apiEndpoint: "http://localhost:8080/server"
 };
-
-
 
 
 export const generateNavigationLinks = (

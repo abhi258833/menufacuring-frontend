@@ -66,6 +66,24 @@ const buildApiQueryParams = (params: SearchParams): string => {
   return queryParams.toString();
 };
 
+const normalizeQueryForApi = (rawQuery?: string): string => {
+  if (!rawQuery) return "";
+
+  const normalized = rawQuery.trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+
+  // Preserve user-provided advanced syntax if they explicitly use operators or quotes.
+  if (/\b(AND|OR|NOT)\b/i.test(normalized) || normalized.includes('"')) {
+    return normalized;
+  }
+
+  const terms = normalized.split(" ").filter(Boolean);
+  if (terms.length <= 1) return terms[0] || "";
+
+  // Multi-word plain search works more reliably as term conjunction in discover search.
+  return terms.join(" AND ");
+};
+
 export const parseSearchParamsFromUrl = (): SearchParams => {
   if (typeof window === 'undefined') {
     return { page: 0, size: 10 };
@@ -170,7 +188,8 @@ export const updateUrlWithSearchParams = (params: SearchParams) => {
     });
   }
 
-  const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+  const serializedParams = urlParams.toString().replace(/\+/g, '%20');
+  const newUrl = `${window.location.pathname}?${serializedParams}`;
   window.history.pushState({ path: newUrl }, '', newUrl);
 };
 
@@ -178,13 +197,14 @@ export const searchObjects = async (
   params: SearchParams, isAuthenticated: boolean = false
 ): Promise<{ results: any[]; totalElements: number }> => {
   let apiUrl = `${siteConfig.apiEndpoint}/api/discover/search/objects?${buildApiQueryParams(params)}&dsoType=item`;
+  const normalizedQuery = normalizeQueryForApi(params.query);
   
   if (params.scope) {
     apiUrl += `&scope=${params.scope}`;
   }
 
-  if (params.query?.trim()) {
-    apiUrl += `&query=${encodeURIComponent(params.query)}`;
+  if (normalizedQuery) {
+    apiUrl += `&query=${encodeURIComponent(normalizedQuery)}`;
   }
 
   apiUrl += '&embed=thumbnail&embed=item/thumbnail'
@@ -227,6 +247,7 @@ export const fetchFacet = async (
   isAuthenticated: boolean = false
 ): Promise<FilterOption[]> => {
   const facetParams = { ...params };
+  const normalizedQuery = normalizeQueryForApi(facetParams.query);
 
   facetParams.page = facetPage;
   facetParams.size = facetSize;
@@ -237,8 +258,8 @@ export const fetchFacet = async (
     f_url += `&scope=${facetParams.scope}`;
   }
 
-  if (facetParams.query) {
-    f_url += `&query=${encodeURIComponent(facetParams.query)}`;
+  if (normalizedQuery) {
+    f_url += `&query=${encodeURIComponent(normalizedQuery)}`;
   }
 
   if (prefix) {

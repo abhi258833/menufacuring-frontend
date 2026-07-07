@@ -1,8 +1,4 @@
-/* main content holder */
-.main-content-holder {
-  display: grid;
-  row-gap: 20px;
-}
+
 
 .main-content-holder--login {
   margin-top: 0;

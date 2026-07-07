@@ -6,6 +6,8 @@ import Home from "../pages/Home/Home";
 import Login from "../pages/Login/Login";
 import { useAuth } from "../contexts/AuthContext";
 import { ToastProvider } from "../contexts/ToastProvider";
+import ProtectedLayout from "../layout/ProtectedLayout";
+import PublicLayout from "../layout/PublicLayout";
 
 // Lazy load all other pages for code splitting
 const About = lazy(() => import("../pages/About/About"));
@@ -114,55 +116,63 @@ const AppRoutes = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route element={<PublicOnlyRoute />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgotPassword" element={<ForgotPassword />} />
-            <Route path="/forgot/:token" element={<Forgot />} />
-            <Route path="/register/:token" element={<Register />} />
-            <Route path="/signUp" element={<SignUp />} />
+            <Route element={<PublicLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgotPassword" element={<ForgotPassword />} />
+              <Route path="/forgot/:token" element={<Forgot />} />
+              <Route path="/register/:token" element={<Register />} />
+              <Route path="/signUp" element={<SignUp />} />
+            </Route>
           </Route>
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/adminSearch" element={<Search />} />
-            <Route path="/advanceSearch" element={<AdvanceSearch />} />
-            <Route path="/items/:id" element={<BookDetails />} />
-            <Route path="/error-400" element={<Error400 />} />
-            <Route path="/error-401" element={<Error401 />} />
-            <Route path="/error-403" element={<Error403 />} />
-            <Route path="/error-404" element={<Error404 />} />
-            <Route path="/error-422" element={<Error422 />} />
-            <Route path="/error-500" element={<Error500 />} />
             <Route path="/pdf-viewer" element={<PDFViewer />} />
             <Route path="/flip-book-viewer" element={<PDFFlipBook />} />
-            <Route path="/edit-Community-Collection" element={<EditCommunity />} />
-            <Route path="/createPolicies/:uuid" element={<CreatePolicy />} />
-            <Route path="/policies/:id" element={<Policies />} />
-            <Route path="/assignRole/:id" element={<AssignRole />} />
-            <Route path="/edit-item/:itemId" element={<EditItem />} />
-            <Route path="/add-bitstream/:itemId" element={<AddBitstream />} />
-            <Route path="/workflowSearch" element={<Workflow />} />
-            <Route path="/workflowTask" element={<WorkflowTaskManagement />} />
-            <Route path="/removeWorkflowItem/:id" element={<RemoveItem />} />
-            <Route path="/resourcePolicy/:id" element={<ResourcePolicy />} />
-            <Route path="/processes" element={<Processes />} />
-            <Route path="/process/:id" element={<ProcessDetail />} />
-            <Route path="/supervisionSelecter/:uuid" element={<SupervisionSelecter />} />
-            <Route path="/createResourcePolicy/:uuid" element={<CreateResourcePolicy />} />
-            <Route path="/usermanagement" element={<UserManagement />} />
-            <Route path="/AuditTrailLogs" element={<AuditTrailLogs />} />
-            <Route path="/report/user" element={<UserListTable />} />
-            <Route path="/report/item" element={<ItemReportTable />} />
-            <Route path="/userProfile/:userId" element={<UserProfileWrapper />} />
-            <Route path="/userCart/:userId" element={<UserCartWrapper />} />
-            <Route path="/metadataSchemas" element={<MetadataSchemas />} />
-            <Route path="/bitstream/:schemaId/:schemaName" element={<Bitstream />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/edit-group" element={<EditGroup />} />
-            <Route path="/batchImport" element={<BatchImport />} />
-            <Route path="/collections/:collectionId/create-item" element={<CreateItemWrapper />} />
-            <Route path="/system-information" element={<SystemInformation />} />
+
+            <Route element={<ProtectedLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/adminSearch" element={<Search />} />
+              <Route path="/advanceSearch" element={<AdvanceSearch />} />
+              <Route path="/items/:id" element={<BookDetails />} />
+              <Route path="/error-400" element={<Error400 />} />
+              <Route path="/error-401" element={<Error401 />} />
+              <Route path="/error-403" element={<Error403 />} />
+              <Route path="/error-404" element={<Error404 />} />
+              <Route path="/error-422" element={<Error422 />} />
+              <Route path="/error-500" element={<Error500 />} />
+              <Route path="/edit-Community-Collection" element={<EditCommunity />} />
+              <Route path="/createPolicies/:uuid" element={<CreatePolicy />} />
+              <Route path="/policies/:id" element={<Policies />} />
+              <Route path="/assignRole/:id" element={<AssignRole />} />
+              <Route path="/edit-item/:itemId" element={<EditItem />} />
+              <Route path="/add-bitstream/:itemId" element={<AddBitstream />} />
+              <Route path="/workflowSearch" element={<Workflow />} />
+              <Route path="/workflowTask" element={<WorkflowTaskManagement />} />
+              <Route path="/removeWorkflowItem/:id" element={<RemoveItem />} />
+              <Route path="/resourcePolicy/:id" element={<ResourcePolicy />} />
+              <Route path="/processes" element={<Processes />} />
+              <Route path="/process/:id" element={<ProcessDetail />} />
+              <Route path="/supervisionSelecter/:uuid" element={<SupervisionSelecter />} />
+              <Route path="/createResourcePolicy/:uuid" element={<CreateResourcePolicy />} />
+              <Route path="/usermanagement" element={<UserManagement />} />
+              <Route path="/AuditTrailLogs" element={<AuditTrailLogs />} />
+              <Route path="/report/user" element={<UserListTable />} />
+              <Route path="/report/item" element={<ItemReportTable />} />
+              <Route path="/userProfile/:userId" element={<UserProfileWrapper />} />
+              <Route path="/userCart/:userId" element={<UserCartWrapper />} />
+              <Route path="/metadataSchemas" element={<MetadataSchemas />} />
+              <Route path="/bitstream/:schemaId/:schemaName" element={<Bitstream />} />
+              <Route path="/groups" element={<Groups />} />
+              <Route path="/edit-group" element={<EditGroup />} />
+              <Route path="/batchImport" element={<BatchImport />} />
+              <Route
+                path="/collections/:collectionId/create-item"
+                element={<CreateItemWrapper />}
+              />
+              <Route path="/system-information" element={<SystemInformation />} />
+            </Route>
           </Route>
 
           <Route path="/access-denied" element={<AccessDenied />} />
