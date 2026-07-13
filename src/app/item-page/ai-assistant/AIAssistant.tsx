@@ -15,38 +15,33 @@ import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import QuestionAnswerOutlinedIcon from '@mui/icons-material/QuestionAnswerOutlined';
 import SummarizeOutlinedIcon from '@mui/icons-material/SummarizeOutlined';
 import { useParams } from 'react-router-dom';
+import useDocumentSummary from './hooks/useDocumentSummary';
+import SummaryPanel from './SummaryPanel';
+import { extractHandleFromPath, parseHandleFromUri } from '../../../utils/handle';
 
 interface AIAssistantProps {
   handle?: string | null;
   mode: 'summary' | 'chat';
   open: boolean;
   onClose: () => void;
+  onNavigate?: (page: number) => void;
+  selectedPage?: number | null;
 }
 
 const AI_SERVICE_BASE_URL = 'http://localhost:8000';
 
-const extractHandleFromPath = (pathname: string): string => {
-  const handleMatch = pathname.match(/\/handle\/([^/?#]+\/[^/?#]+)/i);
-  return handleMatch?.[1] ?? '';
-};
-
-const parseHandleFromUri = (uri?: string | null): string => {
-  if (!uri) {
-    return '';
-  }
-
-  const handleMatch = uri.match(/\/handle\/([^/?#]+\/[^/?#]+)/i);
-  return handleMatch?.[1] ?? '';
-};
-
-const AIAssistant: React.FC<AIAssistantProps> = ({ handle: handleProp, mode, open, onClose }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({
+  handle: handleProp,
+  mode,
+  open,
+  onClose,
+  onNavigate,
+  selectedPage,
+}) => {
   const routeParams = useParams<{ handle?: string; prefix?: string; suffix?: string }>();
-  const [summary, setSummary] = useState('');
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
-  const [summaryError, setSummaryError] = useState('');
   const [chatError, setChatError] = useState('');
-  const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
 
   const handle = useMemo(() => {
@@ -65,37 +60,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ handle: handleProp, mode, ope
     return extractHandleFromPath(window.location.pathname);
   }, [handleProp, routeParams.handle, routeParams.prefix, routeParams.suffix]);
 
-  const generateSummary = useCallback(async () => {
-    if (!handle) {
-      setSummaryError('Handle not available for this item.');
-      return;
-    }
-
-    setLoadingSummary(true);
-    setSummaryError('');
-
-    try {
-      const response = await fetch(`${AI_SERVICE_BASE_URL}/document/summary`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ handle }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Summary request failed');
-      }
-
-      const data = await response.json();
-      setSummary(data.summary ?? '');
-    } catch (error) {
-      console.error('Unable to generate summary:', error);
-      setSummaryError('Unable to generate summary right now.');
-    } finally {
-      setLoadingSummary(false);
-    }
-  }, [handle]);
+  const {
+    sections,
+    loading: loadingSummary,
+    error: summaryError,
+    refetch,
+    persistCache,
+  } = useDocumentSummary(handle, open && mode === 'summary');
 
   const askQuestion = useCallback(async () => {
     if (!question.trim()) {
@@ -137,16 +108,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ handle: handleProp, mode, ope
   }, [handle, question]);
 
   useEffect(() => {
-    if (open && mode === 'summary' && !summary && !loadingSummary) {
-      void generateSummary();
-    }
-  }, [generateSummary, open, mode, summary, loadingSummary]);
-
-  useEffect(() => {
-    setSummary('');
     setQuestion('');
     setAnswer('');
-    setSummaryError('');
     setChatError('');
   }, [handle]);
 
@@ -217,35 +180,28 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ handle: handleProp, mode, ope
               border: '1px solid #e2e8f0',
             }}
           >
-            {summaryError ? (
-              <Alert severity="error">{summaryError}</Alert>
-            ) : loadingSummary ? (
-              <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ minHeight: 220 }}>
-                <CircularProgress />
-                <Typography variant="body2" color="text.secondary">
-                  Building a clean summary for this document...
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <AutoAwesomeOutlinedIcon sx={{ color: '#4f46e5' }} />
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Summary
                 </Typography>
               </Stack>
-            ) : (
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <AutoAwesomeOutlinedIcon sx={{ color: '#4f46e5' }} />
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Summary
-                  </Typography>
-                </Stack>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    whiteSpace: 'pre-wrap',
-                    lineHeight: 1.8,
-                    color: summary ? 'text.primary' : 'text.secondary',
-                  }}
-                >
-                  {summary || 'No summary is available yet.'}
-                </Typography>
-              </Stack>
-            )}
+
+              <SummaryPanel
+                sections={sections}
+                loading={loadingSummary}
+                error={summaryError}
+                selectedPage={selectedPage}
+                onRetry={() => void refetch()}
+                onAllRendered={persistCache}
+                onNavigate={(page) => {
+                  if (onNavigate) {
+                    onNavigate(page);
+                  }
+                }}
+              />
+            </Stack>
           </Box>
         ) : (
           <Stack spacing={2.5}>

@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Worker, Viewer } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import { pageNavigationPlugin } from "@react-pdf-viewer/page-navigation";
 import { searchPlugin } from "@react-pdf-viewer/search";
 
 import "@react-pdf-viewer/core/lib/styles/index.css";
@@ -36,26 +37,43 @@ import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import { getAuthStatus } from "../../api/authApi";
 import { updateUserCart } from "../../api/cart";
 import { getAuthHeaders } from "../../api/searchApi";
+import { fetchItemDetails } from "../../api/item";
+import SummaryPanel from "../../app/item-page/ai-assistant/SummaryPanel";
+import useDocumentSummary from "../../app/item-page/ai-assistant/hooks/useDocumentSummary";
+import { parseHandleFromUri } from "../../utils/handle";
 
 const PDFViewer: React.FC = () => {
     const navigate = useNavigate();
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedPage, setSelectedPage] = useState<number | null>(null);
+    const [documentHandle, setDocumentHandle] = useState("");
 
     const [showForm, setShowForm] = useState(false);
     const [pageInput, setPageInput] = useState("");
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const pageInputRef = useRef<HTMLInputElement>(null);
     const viewerContainerRef = useRef<HTMLDivElement>(null);
+    const pdfViewportRef = useRef<HTMLDivElement>(null);
     const autoSearchKeyRef = useRef<string>("");
+    const initialJumpDoneRef = useRef(false);
 
     const [searchParams] = useSearchParams();
     const uuid = searchParams.get("uuid");
     const itemId = searchParams.get("itemId");
+    const handleParam = searchParams.get("handle") || "";
     const keyword = searchParams.get("keyword") || searchParams.get("keywords") || "";
     const fileName = decodeURIComponent(searchParams.get("name") || "document.pdf");
     const initialSearchKeyword = keyword.trim();
+    const initialSummaryPage = useMemo(() => {
+        const pageValue = Number(searchParams.get("page"));
+        if (!Number.isFinite(pageValue) || pageValue < 1) {
+            return null;
+        }
+
+        return Math.floor(pageValue);
+    }, [searchParams]);
 
     const syncBuiltInSearchInput = (value: string) => {
         if (!value) return false;
@@ -132,9 +150,19 @@ const PDFViewer: React.FC = () => {
     const searchPluginInstance = searchPlugin({
         keyword: undefined,
     });
+    const pageNavigationPluginInstance = pageNavigationPlugin();
+    const { jumpToPage } = pageNavigationPluginInstance;
     const defaultLayoutPluginInstance = defaultLayoutPlugin({
         sidebarTabs: () => [],
     });
+
+    const {
+        sections,
+        loading: summaryLoading,
+        error: summaryError,
+        refetch: refetchSummary,
+        persistCache,
+    } = useDocumentSummary(documentHandle, Boolean(pdfUrl));
 
     /* ---------------- AUTO FOCUS ---------------- */
     useEffect(() => {
@@ -275,7 +303,72 @@ const PDFViewer: React.FC = () => {
 
         observer.observe(document.body, { childList: true, subtree: true });
         return () => observer.disconnect();
-    }, [initialSearchKeyword, pdfUrl]);
+    }, [initialSearchKeyword, pdfUrl, uuid]);
+
+    useEffect(() => {
+        initialJumpDoneRef.current = false;
+        setSelectedPage(null);
+    }, [uuid]);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const resolveHandle = async () => {
+            if (handleParam.trim()) {
+                setDocumentHandle(handleParam.trim());
+                return;
+            }
+
+            if (!itemId) {
+                setDocumentHandle("");
+                return;
+            }
+
+            try {
+                const itemDetails = await fetchItemDetails(itemId);
+                const metadataUri = itemDetails?.metadata?.["dc.identifier.uri"]?.[0]?.value || "";
+                const resolvedHandle = itemDetails?.handle || parseHandleFromUri(metadataUri);
+
+                if (mounted) {
+                    setDocumentHandle(resolvedHandle || "");
+                }
+            } catch (handleError) {
+                console.error("Failed to resolve handle for summary:", handleError);
+                if (mounted) {
+                    setDocumentHandle("");
+                }
+            }
+        };
+
+        void resolveHandle();
+
+        return () => {
+            mounted = false;
+        };
+    }, [handleParam, itemId]);
+
+    const handleNavigateFromSummary = useCallback(
+        (page: number) => {
+            if (page < 1) {
+                return;
+            }
+
+            jumpToPage(page - 1);
+            setSelectedPage(page);
+            pdfViewportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        },
+        [jumpToPage]
+    );
+
+    useEffect(() => {
+        if (!pdfUrl || !initialSummaryPage || initialJumpDoneRef.current) {
+            return;
+        }
+
+        jumpToPage(initialSummaryPage - 1);
+        setSelectedPage(initialSummaryPage);
+        initialJumpDoneRef.current = true;
+    }, [initialSummaryPage, jumpToPage, pdfUrl]);
 
     if (loading) return <Loader />;
     if (error) return <p style={{ color: "red" }}>{error}</p>;
@@ -333,14 +426,42 @@ const PDFViewer: React.FC = () => {
                     </Box>
 
                     <Box className="pdf-viewer-content">
-                        <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-                            {pdfUrl && (
-                                <Viewer
-                                    fileUrl={pdfUrl}
-                                    plugins={[defaultLayoutPluginInstance, searchPluginInstance]}
-                                />
-                            )}
-                        </Worker>
+                        <Box className="pdf-viewer-main" ref={pdfViewportRef}>
+                            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                                {pdfUrl && (
+                                    <Viewer
+                                        fileUrl={pdfUrl}
+                                        plugins={[
+                                            defaultLayoutPluginInstance,
+                                            searchPluginInstance,
+                                            pageNavigationPluginInstance,
+                                        ]}
+                                        onPageChange={(event) => {
+                                            setSelectedPage(event.currentPage + 1);
+                                        }}
+                                    />
+                                )}
+                            </Worker>
+                        </Box>
+
+                        <Box className="pdf-summary-sidebar">
+                            <Typography variant="h6" className="pdf-summary-title">
+                                AI Summary
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" className="pdf-summary-subtitle">
+                                Click a section to jump directly to the page.
+                            </Typography>
+
+                            <SummaryPanel
+                                sections={sections}
+                                onNavigate={handleNavigateFromSummary}
+                                selectedPage={selectedPage}
+                                loading={summaryLoading}
+                                error={summaryError}
+                                onRetry={() => void refetchSummary()}
+                                onAllRendered={persistCache}
+                            />
+                        </Box>
                     </Box>
                 </Box>
             </Paper>

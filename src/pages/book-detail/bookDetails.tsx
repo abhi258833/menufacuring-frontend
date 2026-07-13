@@ -18,7 +18,8 @@ import Loader from '../loader/loader';
 import SecureImage from '../Search/SecureImage';
 import { useUserGroups } from '../../contexts/groupTypeContext';
 import { getowningCollection } from '../../api/item';
-import AIAssistant, { parseHandleFromUri } from '../../app/item-page/ai-assistant/AIAssistant';
+import AIAssistant from '../../app/item-page/ai-assistant/AIAssistant';
+import { parseHandleFromUri } from '../../utils/handle';
 
 
 
@@ -116,6 +117,30 @@ const BookDetails: React.FC = () => {
     const unitPrice = getMetadataValue('dc.UnitPrice');
     const identifierUri = getMetadataValue('dc.identifier.uri');
     const itemHandle = item?.handle || parseHandleFromUri(identifierUri);
+    const primaryPdfBitstream = originalBitstreams.find((bitstream) => /\.pdf$/i.test(bitstream.name));
+
+    const handleSummaryNavigate = (page: number) => {
+        if (!primaryPdfBitstream) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        params.set('uuid', primaryPdfBitstream.uuid);
+        params.set('itemId', id || '');
+        params.set('name', primaryPdfBitstream.name);
+        params.set('page', String(page));
+
+        if (itemHandle) {
+            params.set('handle', itemHandle);
+        }
+
+        if (keyword) {
+            params.set('keyword', keyword);
+        }
+
+        window.open(`/pdf-viewer?${params.toString()}`, '_blank', 'noopener,noreferrer');
+        setSummaryModalOpen(false);
+    };
 
     const renderAIActions = () => (
         <Stack direction="row" spacing={1} flexWrap="nowrap" useFlexGap>
@@ -328,7 +353,7 @@ const BookDetails: React.FC = () => {
                                                                 {pdfBitstreams.map(bitstream => (
                                                                     <div key={bitstream.uuid} className='mb-2'>
                                                                         <Tooltip title="View PDF">
-                                                                            <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${encodeURIComponent(bitstream.uuid)}&itemId=${encodeURIComponent(id ?? '')}&name=${encodeURIComponent(bitstream.name)}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`, '_blank', 'noopener,noreferrer')}>
+                                                                            <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${encodeURIComponent(bitstream.uuid)}&itemId=${encodeURIComponent(id ?? '')}&name=${encodeURIComponent(bitstream.name)}${itemHandle ? `&handle=${encodeURIComponent(itemHandle)}` : ''}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`, '_blank', 'noopener,noreferrer')}>
                                                                                 <VisibilityIcon fontSize="small" />
                                                                             </IconButton>
                                                                         </Tooltip>
@@ -381,7 +406,7 @@ const BookDetails: React.FC = () => {
                                                     <td className="action-buttons-cell">
                                                         <div className="d-flex flex-wrap gap-2">
                                                             <Tooltip title="View PDF">
-                                                                <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${bitstream.uuid}&name=${encodeURIComponent(bitstream.name)}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`, '_blank', 'noopener,noreferrer')}>
+                                                                <IconButton className="action-icon-btn" onClick={() => window.open(`/pdf-viewer?uuid=${bitstream.uuid}&itemId=${encodeURIComponent(id ?? '')}&name=${encodeURIComponent(bitstream.name)}${itemHandle ? `&handle=${encodeURIComponent(itemHandle)}` : ''}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`, '_blank', 'noopener,noreferrer')}>
                                                                     <VisibilityIcon fontSize="small" />
                                                                 </IconButton>
                                                             </Tooltip>
@@ -415,6 +440,7 @@ const BookDetails: React.FC = () => {
                     handle={itemHandle}
                     mode="summary"
                     open={summaryModalOpen}
+                    onNavigate={handleSummaryNavigate}
                     onClose={() => setSummaryModalOpen(false)}
                 />
                 <AIAssistant
